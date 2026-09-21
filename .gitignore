@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+coverage/
+
+# Test scratch dirs (written by the smoke tests)
+.tmp/
+.tmp-out/
+out/
+
+# Pack artifacts
+*.mcaddon
+*.mcpack
+*.log
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# Env
+.env
+.env.*
