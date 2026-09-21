@@ -129,6 +129,10 @@ export class UiGrid extends UiContainer {
     this.dimensions = dimensions;
     return this;
   }
+  setGridDimensions(gridDimensions: [number, number]): this {
+    this.gridDimensions = gridDimensions;
+    return this;
+  }
 
   override build(): Record<string, unknown> {
     const def = super.build();

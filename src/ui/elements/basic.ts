@@ -86,6 +86,14 @@ export class UiImage extends UiElement {
     this.tiled = tiled;
     return this;
   }
+  setUV(uv: [number, number, number, number]): this {
+    this.uv = uv;
+    return this;
+  }
+  setNineSlice(nineSlice: boolean): this {
+    this.nineSlice = nineSlice;
+    return this;
+  }
 
   override build(): Record<string, unknown> {
     const def = super.build();
@@ -125,6 +133,10 @@ export class UiButton extends UiElement {
   }
   setTexture(texture: string): this {
     this.texture = texture;
+    return this;
+  }
+  setFocus(focus: boolean): this {
+    this.focus = focus;
     return this;
   }
 
