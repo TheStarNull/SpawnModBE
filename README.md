@@ -32,7 +32,7 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🧱 **方块生成器**：`Block`（BP 块定义 + states/traits/permutations + RP terrain_texture + tile 本地化）
 - 🎞️ **方块纹理动画**：`FlipbookTextures`（`flipbook_textures.json` 动画参数，岩浆/水式动画）
 - 🔗 **链式 set 方法**：`Item`/`Block`/`EntityBP` 支持 `.setXxx()` 返回自身，一行串多个配置（含 `setLoot` 关联战利品表）
-- 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含面向对象元素（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`）自动注册 `_ui_defs.json`
+- 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含完整面向对象控件（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`/`UiToggle`/`UiDropdown`/`UiSlider`/`UiEditBox`/`UiScrollView`/`UiFactory`/`UiCustom` 等）自动注册 `_ui_defs.json`
 - 🎯 支持 **对象参数** 与 **位置参数** 两种构造方式
 - 🔒 全程 `strict` TypeScript，零运行时依赖（构建期仅需 `typescript` 与 `@types/node`）
 - ✅ 内置 smoke test，`npm test` 一键验证
@@ -1086,8 +1086,11 @@ const ui = new UiFile({ fileName: 'screen.json', namespace: 'ns', elements: [lab
 mod.resource.addUiFile(ui);
 ```
 
-**元素类**：`UiElement`（基类）+ `UiLabel` / `UiImage` / `UiButton` + 容器
-`UiPanel` / `UiStackPanel` / `UiGrid` / `UiScreen`。
+**元素类**：`UiElement`（基类）+ 基础控件 `UiLabel` / `UiImage` / `UiButton` + 容器
+`UiPanel` / `UiStackPanel` / `UiCollectionPanel` / `UiInputPanel` / `UiGrid` / `UiScreen` +
+交互控件 `UiToggle` / `UiDropdown` / `UiSlider` / `UiSliderBox` / `UiEditBox` / `UiSelectionWheel` +
+滚动 `UiScrollView` / `UiScrollbarTrack` / `UiScrollbarBox` + 特殊 `UiFactory` / `UiCustom`。
+所有控件都支持链式 `.setXxx()` 与基类 `addBinding` / `setProperty`。
 
 ### 元素能力
 
@@ -1183,7 +1186,7 @@ SpawnModBE/
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（51 项）
+│   ├── smoke.test.ts   # 冒烟测试（52 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json

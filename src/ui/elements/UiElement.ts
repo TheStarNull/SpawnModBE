@@ -29,10 +29,24 @@ export type UiElementType =
   | 'button'
   | 'panel'
   | 'stack_panel'
+  | 'collection_panel'
   | 'grid'
+  | 'label'
+  | 'image'
+  | 'button'
+  | 'toggle'
+  | 'dropdown'
+  | 'slider'
+  | 'slider_box'
+  | 'edit_box'
+  | 'input_panel'
+  | 'scroll_view'
+  | 'scrollbar_track'
+  | 'scrollbar_box'
   | 'factory'
   | 'custom'
-  | 'screen';
+  | 'screen'
+  | 'selection_wheel';
 
 /** Common per-element options shared by all element classes. */
 export interface UiElementOptions {
@@ -58,6 +72,8 @@ export interface UiElementOptions {
   variables?: Record<string, unknown>;
   /** Animation references (`@namespace.anim`). */
   anims?: string[];
+  /** Data bindings. */
+  bindings?: Array<Record<string, unknown>>;
   /** Extra/raw properties. */
   extra?: Record<string, unknown>;
 }
@@ -134,6 +150,26 @@ export abstract class UiElement {
     return this;
   }
 
+  /** Adds a data binding. Returns `this` for chaining. */
+  addBinding(binding: Record<string, unknown>): this {
+    this.opts.bindings = this.opts.bindings ?? [];
+    this.opts.bindings.push(binding);
+    return this;
+  }
+
+  /** Sets all data bindings. Returns `this` for chaining. */
+  setBindings(bindings: Array<Record<string, unknown>>): this {
+    this.opts.bindings = bindings;
+    return this;
+  }
+
+  /** Sets an arbitrary property on the element. Returns `this` for chaining. */
+  setProperty(name: string, value: unknown): this {
+    this.opts.extra = this.opts.extra ?? {};
+    this.opts.extra[name] = value;
+    return this;
+  }
+
   /**
    * Builds the JSON definition object for this element.
    * Subclasses extend the base definition with their own properties.
@@ -151,6 +187,7 @@ export abstract class UiElement {
     if (o.enabled !== undefined) def.enabled = o.enabled;
     if (o.variables !== undefined) Object.assign(def, o.variables);
     if (o.anims !== undefined && o.anims.length > 0) def.anims = o.anims;
+    if (o.bindings !== undefined && o.bindings.length > 0) def.bindings = o.bindings;
     if (o.extra !== undefined) Object.assign(def, o.extra);
     return def;
   }

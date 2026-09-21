@@ -50,6 +50,11 @@ import {
   UiLabel,
   UiPanel,
   UiStackPanel,
+  UiToggle,
+  UiDropdown,
+  UiSlider,
+  UiEditBox,
+  UiScrollView,
   enchantBookForTrading,
   enchantWithLevels,
   isValidUuid,
@@ -1283,6 +1288,31 @@ function testJsonUi() {
   const stack = new UiStackPanel({ name: 'stack' }).setOrientation('horizontal');
   assert.equal(stack.build().orientation, 'horizontal');
   console.log('[ok] JSON UI OO element system works');
+
+  // Interactive / scroll / special controls.
+  const toggle = new UiToggle({ name: 'tg' }).setToggleName('grp').setDefaultState(true).setCheckedControl('on');
+  assert.equal(toggle.build().toggle_name, 'grp');
+  assert.equal(toggle.build().checked_control, 'on');
+
+  const slider = new UiSlider({ name: 'sl' }).setSliderName('vol').setSteps(10).setDirection('horizontal');
+  assert.equal(slider.build().slider_steps, 10);
+  assert.equal(slider.build().slider_direction, 'horizontal');
+
+  const editBox = new UiEditBox({ name: 'eb' }).setTextBoxName('nick').setMaxLength(16).setTextType('IdentifierChars');
+  assert.equal(editBox.build().text_type, 'IdentifierChars');
+
+  const scroll = new UiScrollView({ name: 'sc' }).setScrollSpeed(5);
+  assert.equal(scroll.build().scroll_speed, 5);
+
+  const dropdown = new UiDropdown({ name: 'dd' }).setDropdownName('demo').setContentControl('content');
+  assert.equal(dropdown.build().dropdown_name, 'demo');
+
+  // bindings via base class.
+  const bound = new UiLabel({ name: 'lb', text: '#text' })
+    .addBinding({ binding_name: '#hardtext', binding_name_override: '#text' });
+  const boundJson = bound.build() as AnyObj;
+  assert.equal((boundJson.bindings as any[]).length, 1);
+  console.log('[ok] JSON UI interactive/scroll controls build');
 }
 
 function testJsonUiIntegration() {
