@@ -43,6 +43,13 @@ import {
   Throwable,
   Tools,
   TradeTable,
+  UiDefs,
+  UiFile,
+  UiGlobalVariables,
+  UiImage,
+  UiLabel,
+  UiPanel,
+  UiStackPanel,
   enchantBookForTrading,
   enchantWithLevels,
   isValidUuid,
@@ -1233,6 +1240,78 @@ function testBlockStatesAndFlipbook() {
   console.log('[ok] FlipbookTextures generates + accumulates');
 }
 
+function testJsonUi() {
+  // UiFile builds with namespace + elements.
+  const ui = new UiFile({
+    fileName: 'my_screen.json',
+    namespace: 'my_screen',
+    elements: [
+      { name: 'hello_label', type: 'label', text: 'Hello World', color: [1, 1, 1], layer: 1 },
+      { name: 'icon', type: 'image', texture: 'textures/ui/icon', size: [16, 16] },
+      { name: 'root_panel', type: 'panel', controls: ['hello_label@my_screen.hello_label', 'icon@my_screen.icon'] },
+    ],
+  });
+  const json = ui.buildJson() as AnyObj;
+  assert.equal(json.namespace, 'my_screen');
+  assert.equal(json.hello_label.type, 'label');
+  assert.equal(json.hello_label.text, 'Hello World');
+  assert.deepEqual(json.hello_label.color, [1, 1, 1]);
+  assert.equal(json.icon.texture, 'textures/ui/icon');
+  assert.deepEqual(json.root_panel.controls, ['hello_label@my_screen.hello_label', 'icon@my_screen.icon']);
+  assert.equal(ui.path, 'ui/my_screen.json');
+
+  // UiWorld defs + global variables.
+  const defs = new UiDefs({ defs: ['ui/my_screen.json'] });
+  assert.deepEqual(defs.buildJson(), { ui_defs: ['ui/my_screen.json'] });
+  const vars = new UiGlobalVariables({ variables: { $info_text_color: [0.8, 0.8, 0.8] } });
+  const varsJson = vars.buildJson() as AnyObj;
+  assert.deepEqual(varsJson.$info_text_color, [0.8, 0.8, 0.8]);
+  console.log('[ok] JSON UI file/defs/variables build');
+
+  // OO element system: compose UiLabel/UiImage/UiPanel with chaining + namespace.
+  const label = new UiLabel({ name: 'hello', text: 'Hi', color: [1, 1, 1] }).setLayer(1);
+  const icon = new UiImage({ name: 'icon', texture: 'textures/ui/icon' }).setSize([16, 16]);
+  const panel = new UiPanel({ name: 'root', controls: [label, icon] });
+  const ooFile = new UiFile({ fileName: 'oo.json', namespace: 'oo', elements: [label, icon, panel] });
+  const ooJson = ooFile.buildJson() as AnyObj;
+  assert.equal(ooJson.hello.type, 'label');
+  assert.equal(ooJson.hello.text, 'Hi');
+  assert.equal(ooJson.root.type, 'panel');
+  // Controls auto-resolve to name@namespace.name references.
+  assert.deepEqual(ooJson.root.controls, [{ 'hello@oo.hello': {} }, { 'icon@oo.icon': {} }]);
+  // Chaining works.
+  const stack = new UiStackPanel({ name: 'stack' }).setOrientation('horizontal');
+  assert.equal(stack.build().orientation, 'horizontal');
+  console.log('[ok] JSON UI OO element system works');
+}
+
+function testJsonUiIntegration() {
+  const mod = new ModMain({ name: 'UI Mod', author: 'devx', sapi: 'scripts/main.js', uuid: { seed: 'ui-mod' } });
+  mod.resource.addUiFile(new UiFile({
+    fileName: 'screen_a.json',
+    namespace: 'a',
+    elements: [{ name: 'x', type: 'label', text: 'hi' }],
+  }));
+  mod.resource.addUiFile(new UiFile({
+    fileName: 'screen_b.json',
+    namespace: 'b',
+    elements: [{ name: 'y', type: 'panel', controls: ['x@a.x'] }],
+  }));
+  mod.resource.addGlobalVariables(new UiGlobalVariables({ variables: { '$c': [1, 1, 1] } }));
+
+  assert.ok(mod.resource.hasFile('ui/screen_a.json'));
+  assert.ok(mod.resource.hasFile('ui/screen_b.json'));
+  assert.ok(mod.resource.hasFile('ui/_ui_defs.json'));
+  assert.ok(mod.resource.hasFile('ui/_global_variables.json'));
+  const defs = JSON.parse(mod.resource.getFile('ui/_ui_defs.json')!.toString()) as AnyObj;
+  assert.deepEqual(defs.ui_defs, ['ui/screen_a.json', 'ui/screen_b.json']);
+  // addUiFile auto-registers; adding the same file twice doesn't duplicate.
+  mod.resource.addUiFile(new UiFile({ fileName: 'screen_a.json', namespace: 'a', elements: [{ name: 'x', type: 'label', text: 'hi' }] }));
+  const defs2 = JSON.parse(mod.resource.getFile('ui/_ui_defs.json')!.toString()) as AnyObj;
+  assert.equal(defs2.ui_defs.length, 2, 'no duplicate ui_defs entry');
+  console.log('[ok] JSON UI integrates into RP (ui/* + _ui_defs + _global_variables)');
+}
+
 function testResourceOnly() {
   const rp = new Resource({
     name: 'Test RP',
@@ -1361,6 +1440,8 @@ testTradeTableIntegration();
 testBlock();
 testBlockIntegration();
 testBlockStatesAndFlipbook();
+testJsonUi();
+testJsonUiIntegration();
 testResourceOnly();
 testBehaviorWithScript();
 testBehaviorWithoutScript();

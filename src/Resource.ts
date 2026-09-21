@@ -34,6 +34,9 @@ import { type FrameSequence } from './rp/FrameSequence.js';
 import { type ItemTextureAtlas } from './rp/ItemTextureAtlas.js';
 import { type LangFile } from './rp/LangFile.js';
 import { type SoundBatch } from './rp/SoundBatch.js';
+import { type UiDefs } from './ui/UiDefs.js';
+import { type UiFile } from './ui/UiFile.js';
+import { type UiGlobalVariables } from './ui/UiGlobalVariables.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
 import type {
   AddSoundOptions,
@@ -418,6 +421,54 @@ export class Resource extends PackBase {
     const path = lang.filePath;
     this.addFile(path, lang.toString());
     return path;
+  }
+
+  /**
+   * Adds a JSON UI file to the pack and registers it in `ui/_ui_defs.json`.
+   *
+   * @param ui The UI file to add.
+   * @returns The pack-relative path that was written.
+   */
+  addUiFile(ui: UiFile): string {
+    // Write the UI file, then merge its def-path into _ui_defs.json.
+    this.addFile(ui.path, ui.toString());
+    const defs = this.readUiDefs();
+    if (!defs.includes(ui.uiDefPath)) {
+      defs.push(ui.uiDefPath);
+    }
+    this.addFile('ui/_ui_defs.json', JSON.stringify({ ui_defs: defs.sort() }, null, 2));
+    return ui.path;
+  }
+
+  /** Adds several JSON UI files at once. */
+  addUiFiles(files: UiFile[]): string[] {
+    return files.map((f) => this.addUiFile(f));
+  }
+
+  /** Writes a complete `_ui_defs.json` (replacing any existing defs). */
+  createUiDefs(defs: UiDefs): string {
+    this.addFile(defs.path, defs.toString());
+    return defs.path;
+  }
+
+  /** Writes `_global_variables.json`. */
+  addGlobalVariables(vars: UiGlobalVariables): string {
+    this.addFile(vars.path, vars.toString());
+    return vars.path;
+  }
+
+  /** Reads the current `ui/_ui_defs.json` array, or a fresh one. */
+  private readUiDefs(): string[] {
+    const file = this.getFile('ui/_ui_defs.json');
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.toString('utf8')) as { ui_defs?: string[] };
+        if (Array.isArray(parsed.ui_defs)) return parsed.ui_defs;
+      } catch {
+        // Malformed → start fresh.
+      }
+    }
+    return [];
   }
 
   /**

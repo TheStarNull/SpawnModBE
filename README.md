@@ -32,6 +32,7 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🧱 **方块生成器**：`Block`（BP 块定义 + states/traits/permutations + RP terrain_texture + tile 本地化）
 - 🎞️ **方块纹理动画**：`FlipbookTextures`（`flipbook_textures.json` 动画参数，岩浆/水式动画）
 - 🔗 **链式 set 方法**：`Item`/`Block`/`EntityBP` 支持 `.setXxx()` 返回自身，一行串多个配置（含 `setLoot` 关联战利品表）
+- 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含面向对象元素（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`）自动注册 `_ui_defs.json`
 - 🎯 支持 **对象参数** 与 **位置参数** 两种构造方式
 - 🔒 全程 `strict` TypeScript，零运行时依赖（构建期仅需 `typescript` 与 `@types/node`）
 - ✅ 内置 smoke test，`npm test` 一键验证
@@ -1033,6 +1034,72 @@ const goblin = new EntityBP({ identifier: 'mymod:goblin' })
 
 ---
 
+## 🖥️ JSON UI 生成器
+
+Minecraft 游戏界面是数据驱动的，保存在资源包的 `RP/ui/...` 目录。SpawnModBE 提供:
+
+- **`UiFile`** — 生成单个 UI 文件（`namespace` + 元素：label/image/button/panel/stack_panel 等）
+- **`UiDefs`** — 生成 `_ui_defs.json`（注册所有 UI 文件）
+- **`UiGlobalVariables`** — 生成 `_global_variables.json`（全局常量变量）
+
+### 创建一个自定义界面
+
+```ts
+import { UiFile, UiDefs, UiGlobalVariables } from 'spawnmodbe';
+
+// 1) 定义 UI 文件（namespace + 元素）
+const myScreen = new UiFile({
+  fileName: 'my_screen.json',
+  namespace: 'my_screen',
+  elements: [
+    { name: 'hello_label', type: 'label', text: 'Hello World', color: [1, 1, 1], layer: 1 },
+    { name: 'icon', type: 'image', texture: 'textures/ui/icon', size: [16, 16] },
+    {
+      name: 'root_panel',
+      type: 'panel',
+      controls: ['hello_label@my_screen.hello_label', 'icon@my_screen.icon'],
+    },
+  ],
+});
+
+// 2) 写入资源包（addUiFile 会自动注册到 _ui_defs.json）
+mod.resource.addUiFile(myScreen);                       // → ui/my_screen.json + ui/_ui_defs.json
+mod.resource.addGlobalVariables(
+  new UiGlobalVariables({ variables: { $info_text_color: [0.8, 0.8, 0.8] } })
+);                                                      // → ui/_global_variables.json
+```
+
+### 面向对象元素（推荐）
+
+除了纯数据元素，还内置一套 **OOP 风格元素类**（Tkinter 式），支持链式 `.setXxx()`，
+自动处理 `controls` 的 `name@namespace.name` 引用：
+
+```ts
+import { UiLabel, UiImage, UiPanel, UiFile } from 'spawnmodbe';
+
+const label = new UiLabel({ name: 'hello', text: 'Hello', color: [1, 1, 1] }).setLayer(1);
+const icon = new UiImage({ name: 'icon', texture: 'textures/ui/icon' }).setSize([16, 16]);
+const panel = new UiPanel({ name: 'root', controls: [label, icon] });
+// panel.build() 会把 controls 自动解析为 { 'hello@ns.hello': {} } ...
+
+const ui = new UiFile({ fileName: 'screen.json', namespace: 'ns', elements: [label, icon, panel] });
+mod.resource.addUiFile(ui);
+```
+
+**元素类**：`UiElement`（基类）+ `UiLabel` / `UiImage` / `UiButton` + 容器
+`UiPanel` / `UiStackPanel` / `UiGrid` / `UiScreen`。
+
+### 元素能力
+
+`UiElementData`/`UiElement` 支持：`type`（label/image/button/panel/stack_panel/grid/factory/custom/screen）、
+`text` / `texture` / `size` / `offset` / `anchor_from` / `anchor_to` / `color` / `alpha` /
+`layer` / `visible` / `enabled` / `controls` / `bindings` / `variables`（`$name`）/ `anims`
+（`@namespace.anim_name`）/ `extra`（任意额外属性）。
+
+> ⚠️ 注意：JSON UI 正被 Ore UI 取代（资源包将无法修改硬编码的 Ore UI）。新项目请慎重选用。
+
+---
+
 ## ⚙️ 配置项
 
 ### `ModMainConfig`
@@ -1083,7 +1150,8 @@ npm test
 **实体帧序列动画（FrameSequence RC/贴图映射 + 占位帧）**、
 **村庄交易表（TradeTable tiers/groups/trades + 附魔函数）**、
 **方块（Block BP 定义 + states/traits/permutations + terrain_texture + tile 本地化）**、
-**方块纹理动画（FlipbookTextures）**。
+**方块纹理动画（FlipbookTextures）**、
+**JSON UI（UiFile/UiDefs/UiGlobalVariables + 自动 _ui_defs 注册）**。
 
 ---
 
@@ -1108,13 +1176,14 @@ SpawnModBE/
 │   ├── trade/          # 村庄交易表（TradeTable + 附魔函数）
 │   ├── block/          # 方块（Block BP 定义）
 │   ├── entity/         # 实体体系（EntityBP/EntityRP/RenderController/SpawnRules）
+│   ├── ui/             # JSON UI（UiFile/UiDefs/UiGlobalVariables + OO 元素：UiLabel/UiPanel/...）
 │   └── rp/             # RP 模块（LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures）
 ├── example/
 │   ├── index.ts             # 带 SAPI + 目录复制 + 打包的示例
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（48 项）
+│   ├── smoke.test.ts   # 冒烟测试（51 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json
@@ -1138,6 +1207,7 @@ SpawnModBE/
 - [x] 村庄交易表（`TradeTable`：tiers/groups/trades + 附魔函数）
 - [x] 方块生成器（`Block`：BP 定义 + states/traits/permutations + terrain_texture + tile 本地化）
 - [x] 方块纹理动画（`FlipbookTextures`：flipbook_textures.json）
+- [x] JSON UI 生成器（`UiFile` / `UiDefs` / `UiGlobalVariables`）
 - [ ] CLI 工具（`npx spawnmodbe init`）
 
 ---
