@@ -197,7 +197,7 @@ export function pairLootPaths(entries: Array<Addable | string>): Addable[] {
     const next = entries[i + 1];
     if ((e instanceof LootTable || e instanceof TradeTable) && typeof next === 'string') {
       out.push([e, next] as Addable);
-      i++;
+      i++;   // consume the path arg
     } else {
       out.push(e as Addable);
     }

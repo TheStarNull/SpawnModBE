@@ -65,6 +65,7 @@ import {
   setCount,
 } from '../src/index.js';
 import { runCli } from '../src/cli.js';
+import type { Addable as AddableType } from '../src/routing.js';
 
 type AnyObj = Record<string, any>;
 
@@ -1541,6 +1542,45 @@ function testRoutingRpModules() {
   console.log('[ok] mod.add routes RP modules (lang/atlas/attachable/sound/model/sequence/flipbook/ui)');
 }
 
+function testRoutingPathsAndErrors() {
+  const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-paths' } });
+  const sword = new Shaped({
+    identifier: 'route:sword',
+    tags: ['crafting_table'],
+    pattern: ['X'],
+    key: { X: 'minecraft:diamond' },
+    result: { item: 'route:sword' },
+  });
+  mod.add([sword, 'weapons']);
+  assert.ok(mod.behavior!.hasFile('recipes/weapons/sword.json'), 'recipe tuple subpath works');
+  const table = new LootTable({
+    pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }],
+  });
+  mod.add([table, 'loot_tables/cave']);
+  assert.ok(mod.behavior!.hasFile('loot_tables/cave.json'), 'loot tuple path works');
+  const trades = new TradeTable({
+    tiers: [{
+      groups: [{
+        numToSelect: 1,
+        trades: [{ wants: [{ item: 'minecraft:emerald' }], gives: [{ item: 'route:sword' }] }],
+      }],
+    }],
+  });
+  mod.add(trades, 'trading/trader');
+  assert.ok(mod.behavior!.hasFile('trading/trader.json'), 'add(table, path) works');
+  console.log('[ok] add() handles tuple paths and (table, path) pairs');
+}
+
+function testRoutingErrors() {
+  const rpOnly = new ModMain({ name: 'RP Only', uuid: { seed: 'rp-only' } });
+  assert.throws(() => rpOnly.add(new Item({ identifier: 'x:y', name: 'Y' })), /behavior pack/);
+  const mod = new ModMain({ name: 'M', sapi: 'scripts/main.js', uuid: { seed: 'route-err' } });
+  assert.throws(() => mod.add({ whatever: 1 } as unknown as AddableType), /Unsupported entry/);
+  const pathless = new LootTable({ pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }] });
+  assert.throws(() => mod.add(pathless), /explicit path/);
+  console.log('[ok] add() errors are explicit (no-sapi / unsupported / missing path)');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1677,4 +1717,6 @@ testAddItemName();
 testRoutingItems();
 testRoutingEntities();
 testRoutingRpModules();
+testRoutingPathsAndErrors();
+testRoutingErrors();
 console.log('\nAll SpawnModBE smoke tests passed.');
