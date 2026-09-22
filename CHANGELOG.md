@@ -5,6 +5,21 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.3.0] - 2026-09-22
+
+### Added
+
+- 统一接线 API：`mod.add(...)` 按类型自动路由到行为包/资源包（物品、方块、实体四件套、
+  配方、战利品表、交易表、JSON UI、RP 模块），支持嵌套数组与 `[table, path]` 元组
+- `mod.define({...})` 声明式批量接线，返回 `this` 可链式
+- 工厂方法：`mod.item` / `mod.block` / `mod.entityBP` / `mod.entityRP` /
+  `mod.renderController` / `mod.spawnRules` / `mod.shaped` / `mod.shapeless` /
+  `mod.furnace` / `mod.brewingMix` / `mod.brewingContainer` / `mod.loot` /
+  `mod.trade` / `mod.ui`（创建即接线）
+- `Resource.addItemName()`：物品显示名本地化（`item.<id>.name`，与 `addBlockName` 对称合并）
+- 明确错误语义：不支持类型 / 纯 RP 模组接 BP 模块 / loot·trade 缺路径均抛出带提示的错误
+- 冒烟测试 57 → 65；example 与 README 改为统一接线写法
+
 ## [0.2.0] - 2026-09-22
 
 ### Added

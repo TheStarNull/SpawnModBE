@@ -12,7 +12,7 @@
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { Armor, Item, ModMain, RecordDisc, Tools } from '../src/index.js';
+import { Armor, Item, LootTable, ModMain, RecordDisc, Shaped, Tools } from '../src/index.js';
 
 // Object form (recommended).
 const mod = new ModMain({
@@ -81,11 +81,27 @@ const disc = new RecordDisc({
   texturePath: 'textures/items/record_spawn',
 });
 
-// Add items to the behavior pack (item definitions) and resource pack (textures).
-mod.behavior?.addItems([ruby, dagger, helmet, disc]);
-mod.resource.addItemTextures([ruby, dagger, helmet, disc]);
+// ---- Unified wiring: one entry point routes BP/RP automatically ----
+mod.define({
+  items: [ruby, dagger, helmet, disc],
+  recipes: [
+    new Shaped({
+      identifier: 'spawnmod:dagger_from_obsidian',
+      tags: ['crafting_table'],
+      pattern: [' O ', ' S '],
+      key: { O: 'minecraft:obsidian', S: 'minecraft:stick' },
+      result: { item: 'spawnmod:obsidian_dagger' },
+    }),
+  ],
+  loot: [[
+    new LootTable({
+      pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:emerald', weight: 1 }] }],
+    }),
+    'loot_tables/demo',
+  ]],
+});
 
-// Register the disc's music: sound definition (streaming record) + audio file.
+// Register the disc's music audio: sound definition above + the OGG file itself.
 mod.resource.addRecordSound(disc, Buffer.from('OggS-demo-record-audio', 'utf8'));
 console.log('\n=== Custom disc ===');
 console.log(

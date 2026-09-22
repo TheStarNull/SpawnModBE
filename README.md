@@ -13,6 +13,7 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 
 ## ✨ 特性
 
+- 🧩 **统一接线**：`mod.add()` / `mod.define()` 按类型自动路由 BP/RP + 工厂方法（0.3.0）
 - 🧩 三大核心类：`ModMain`（整模）、`Behavior`（行为包）、`Resource`（资源包）
 - 📦 自动生成 `format_version: 2` 的 RP/BP manifest（header / modules / dependencies）
 - 🤖 自动生成 **确定性 UUID 池**：同一 seed 每次构建产出完全相同的 UUID，跨包依赖稳定可靠
@@ -1104,6 +1105,32 @@ mod.resource.addUiFile(ui);
 
 ---
 
+## 🧩 统一接线（推荐）
+
+从 0.3.0 起不再需要手动记住 BP/RP 归属：`mod.add(...)` 会按类型自动路由，
+一个调用完成全部接线（物品 = BP 定义 + RP 贴图占位 + 动态模型 + 本地化名称；
+方块 = BP + 地形纹理 + tile 名称；唱片 = 物品 + 声音定义；实体四件套各归其位）。
+
+```ts
+mod.add(ruby);                        // BP + RP 一次接完
+mod.add([dagger, helmet, disc]);      // 数组批量
+mod.add(chainsaw);                    // 自动含动态模型三文件
+mod.define({
+  items: [ruby, dagger],
+  blocks: [lamp],
+  entities: [goblinBp, goblinRp, goblinRc, goblinSpawn],
+  recipes: [[sword, 'weapons']],
+  loot: [[table, 'loot_tables/cave']],
+});                                    // 声明式批量，返回 this
+```
+
+工厂方法：`mod.item({...})` / `mod.block({...})` / `mod.entityBP({...})` /
+`mod.shaped({...})` / `mod.loot(config, path)` / `mod.ui({...})` 等，创建即接线。
+LootTable/TradeTable 需显式路径（`[table, path]` 或 `mod.add(table, path)`）。
+纯资源包模组添加 BP 侧模块会得到明确报错提示，不会静默漏接。
+
+---
+
 ## 🧩 CLI 工具
 
 除了作为库使用，`spawnmodbe` 也提供命令行脚手架，用于一键生成可编译的模组工程：
@@ -1209,6 +1236,7 @@ SpawnModBE/
 │   ├── uuid.ts         # 确定性 UUID 池
 │   ├── assets.ts       # 默认包图标生成
 │   ├── cli.ts          # CLI（bin: spawnmodbe init）脚手架
+│   ├── routing.ts      # 统一接线路由（add/define/工厂的底层分发）
 │   ├── item/           # 物品体系（Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc）
 │   ├── recipe/         # 配方体系（Shaped/Shapeless/Furnace/BrewingMix/BrewingContainer）
 │   ├── loot/           # 战利品表（LootTable + 辅助函数）
@@ -1222,7 +1250,7 @@ SpawnModBE/
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（57 项）
+│   ├── smoke.test.ts   # 冒烟测试（65 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json
@@ -1248,6 +1276,7 @@ SpawnModBE/
 - [x] 方块纹理动画（`FlipbookTextures`：flipbook_textures.json）
 - [x] JSON UI 生成器（`UiFile` / `UiDefs` / `UiGlobalVariables`）
 - [x] CLI 工具（`npx spawnmodbe init`）
+- [x] 统一接线 API（`mod.add` / `mod.define` / 工厂方法）
 
 ---
 
