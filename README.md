@@ -1221,9 +1221,15 @@ const rubyFog = new Fog({
 mod.add(rubyFog);   // → fogs/ruby_fog.json（RP）
 ```
 
-`Fog` 落在资源包 `fogs/` 下。要在存档中生效，还需在资源的 `biomes_client.json`
-（本框架默认生成的 `client_biome.json`）里把对应的生物群系指派给这团雾，例如
-`"mymod:plain": { "fog_identifier": "mymod:ruby_fog" }`。
+`Fog` 落在资源包 `fogs/` 下。要在存档中生效，还需在资源包的
+`biomes_client.json` 里把对应的生物群系指派给这团雾（`"fog_identifier"`），例如：
+
+```json
+{ "mymod:plain": { "fog_identifier": "mymod:ruby_fog" } }
+```
+
+生成的 `Fog` 只提供 `fogs/*.json` 雾定义；`biomes_client.json` 的指派需在
+资源包内自行维护。
 
 ---
 
