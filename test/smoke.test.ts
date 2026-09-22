@@ -1692,6 +1692,8 @@ function testRoutingErrors() {
   assert.throws(() => mod.add({ whatever: 1 } as unknown as AddableType), /Unsupported entry/);
   const pathless = new LootTable({ pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }] });
   assert.throws(() => mod.add(pathless), /explicit path/);
+  const rpParticle = new ModMain({ name: 'RP Particle', uuid: { seed: 'rp-particle' } });
+  assert.throws(() => rpParticle.add(new Particle({ identifier: 'x:y' })), /no behavior pack/);
   console.log('[ok] add() errors are explicit (no-sapi / unsupported / missing path)');
 }
 

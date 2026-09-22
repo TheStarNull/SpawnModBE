@@ -7,9 +7,13 @@
 
 import type { ModMain } from './ModMain.js';
 import { Block } from './block/index.js';
+import { Biome } from './biome/index.js';
 import { EntityBP, EntityRP, RenderController, SpawnRules } from './entity/index.js';
+import { Feature, FeatureRule } from './feature/index.js';
+import { Fog } from './fog/index.js';
 import { Item, RecordDisc } from './item/index.js';
 import { LootTable } from './loot/index.js';
+import { Particle } from './particle/index.js';
 import { Recipe } from './recipe/index.js';
 import {
   Attachable,
@@ -44,6 +48,11 @@ export type Addable =
   | DynamicItemModel
   | FrameSequence
   | FlipbookTextures
+  | Particle
+  | Feature
+  | FeatureRule
+  | Biome
+  | Fog
   | [Recipe, string?]
   | [LootTable, string]
   | [TradeTable, string]
@@ -58,7 +67,11 @@ export interface DefineSpec {
   loot?: (LootTable | [LootTable, string])[];
   trades?: (TradeTable | [TradeTable, string])[];
   ui?: (UiFile | UiDefs | UiGlobalVariables)[];
-  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures)[];
+  particles?: Particle[];
+  features?: Feature[];
+  featureRules?: FeatureRule[];
+  biomes?: Biome[];
+  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | Fog)[];
 }
 
 /** Turns a display name or identifier into readable capitalized words. */
@@ -79,7 +92,7 @@ function typeLabel(entry: unknown): string {
 
 function unsupportedError(entry: unknown): Error {
   return new Error(
-    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures.`
+    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures, Particle, Feature/FeatureRule, Biome, Fog.`
   );
 }
 
@@ -186,6 +199,12 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
     return;
   }
   if (entry instanceof FlipbookTextures) { mod.resource.addFlipbookTexture(entry); return; }
+
+  if (entry instanceof Particle) { requireBehavior(mod, 'particle'); mod.behavior!.addParticle(entry); return; }
+  if (entry instanceof Feature) { requireBehavior(mod, 'feature'); mod.behavior!.addFeature(entry); return; }
+  if (entry instanceof FeatureRule) { requireBehavior(mod, 'feature rule'); mod.behavior!.addFeatureRule(entry); return; }
+  if (entry instanceof Biome) { requireBehavior(mod, 'biome'); mod.behavior!.addBiome(entry); return; }
+  if (entry instanceof Fog) { mod.resource.addFog(entry); return; }
 
   throw unsupportedError(entry);
 }
