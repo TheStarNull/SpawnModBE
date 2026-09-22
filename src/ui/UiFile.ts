@@ -37,7 +37,7 @@ export type UiElementType =
   | 'custom'
   | 'screen';
 
-import type { UiElement as UiElementInstance } from './elements/UiElement.js';
+import { UiElement as UiElementInstance, type UiControl } from './elements/UiElement.js';
 
 /** A UI element as plain data (name → definition).
  * The `controls` array can reference other elements by `name@namespace.element`.
@@ -113,39 +113,102 @@ export class UiFile {
     };
   }
 
-  /** The full path under `RP/ui/`. */
+  /** The full path under `RP/ui/` (always a single `ui/` prefix). */
   get path(): string {
-    return `ui/${this.config.fileName}`;
+    const base = this.config.fileName.replace(/^ui\//, '');
+    return `ui/${base}`;
   }
 
   /** The plain UI path (relative to pack root) referenced by `_ui_defs.json`. */
   get uiDefPath(): string {
-    return this.config.fileName.startsWith('ui/')
-      ? this.config.fileName
-      : `ui/${this.config.fileName}`;
+    const base = this.config.fileName.replace(/^ui\//, '');
+    return `ui/${base}`;
   }
 
   /**
    * Builds the JSON UI file object: `{ "namespace": "...", ...elements }`.
-   * Top-level element names become the keys of the JSON root.
+   *
+   * - Every top-level element becomes a key. OO elements have their namespace
+   *   set to this file's namespace (unless they already have one).
+   * - Any OO child control referenced by a container's `controls` is also
+   *   collected into the output (so definitions are never lost).
+   * - `controls` entries are normalized to the required object form
+   *   `{ "ref": {} }` regardless of how they were provided.
    */
   buildJson(): object {
     const out: Record<string, unknown> = { namespace: this.config.namespace };
+    const defined = new Set<string>();
+    const register = (name: string, def: unknown, namespace: string): void => {
+      const key = namespace ? `${namespace}.${name}` : name;
+      if (!defined.has(key)) {
+        defined.add(key);
+        out[name] = def;
+      }
+    };
+
+    // 1) Register explicitly-listed top-level elements first.
     for (const el of this.config.elements) {
       if (this.isElementInstance(el)) {
-        // OO element: set its namespace so child refs resolve, then build.
-        el.setNamespace(this.config.namespace);
-        out[el.name] = el.build();
+        // Set only if not already given an explicit namespace, so a child's own
+        // `shared`/other namespace is preserved.
+        if (!el.namespace) el.setNamespace(this.config.namespace);
+        register(el.name, el.build(), el.namespace);
       } else {
-        out[el.name] = this.buildElement(el);
+        register(el.name, this.buildElement(el), this.config.namespace);
       }
     }
+
+    // 2) Collect any OO child controls that were referenced by containers but
+    //    not registered above (so their definitions are not lost).
+    for (const el of this.config.elements) {
+      if (this.isElementInstance(el)) this.collectChildControls(el, register);
+      else this.collectChildControlsData(el, register);
+    }
+
     return out;
   }
 
   /** Returns `true` if the entry is an OO {@link UiElementInstance}. */
   private isElementInstance(el: UiElementInput): el is UiElementInstance {
     return typeof (el as UiElementInstance).build === 'function';
+  }
+
+  /** Recursively registers OO child controls reachable from a container. */
+  private collectChildControls(el: UiElementInstance, register: (n: string, d: unknown, ns: string) => void): void {
+    // Containers store controls on their build output; peek via the opts.
+    const controls = (el as unknown as { controls?: UiControl[] }).controls;
+    if (!controls) return;
+    for (const c of controls) {
+      if (c instanceof UiElementInstance) {
+        if (!c.namespace) c.setNamespace(el.namespace);
+        register(c.name, c.build(), c.namespace);
+        this.collectChildControls(c, register);
+      }
+    }
+  }
+
+  /** Recursively registers OO child controls from plain-data elements. */
+  private collectChildControlsData(el: UiElementData, register: (n: string, d: unknown, ns: string) => void): void {
+    const controls = el.controls;
+    if (!controls) return;
+    for (const c of controls) {
+      if (c instanceof UiElementInstance) {
+        if (!c.namespace) c.setNamespace(this.config.namespace);
+        register(c.name, c.build(), c.namespace);
+        this.collectChildControls(c, register);
+      }
+    }
+  }
+
+  /** Normalizes a `controls` array to the required `{ "ref": {} }` object form. */
+  private normalizeControls(controls: Array<UiControl | UiElementData>): Array<Record<string, unknown>> {
+    return controls.map((c) => {
+      if (c instanceof UiElementInstance) {
+        return { [c.ref(c.namespace || this.config.namespace)]: {} };
+      }
+      if (typeof c === 'string') return { [c]: {} };
+      return c as Record<string, unknown>;
+    });
   }
 
   /** Builds a plain-data element definition. */
@@ -162,7 +225,9 @@ export class UiFile {
     if (el.layer !== undefined) def.layer = el.layer;
     if (el.visible !== undefined) def.visible = el.visible;
     if (el.enabled !== undefined) def.enabled = el.enabled;
-    if (el.controls !== undefined && el.controls.length > 0) def.controls = el.controls;
+    if (el.controls !== undefined && el.controls.length > 0) {
+      def.controls = this.normalizeControls(el.controls as Array<UiControl | UiElementData>);
+    }
     if (el.bindings !== undefined && el.bindings.length > 0) def.bindings = el.bindings;
     if (el.variables !== undefined) Object.assign(def, el.variables);
     if (el.anims !== undefined && el.anims.length > 0) def.anims = el.anims;

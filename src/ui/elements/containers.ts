@@ -47,7 +47,10 @@ export abstract class UiContainer extends UiElement {
 export interface UiPanelOptions extends UiContainerOptions {
   /** Background texture (if any). */
   texture?: string;
-  /** Whether children clip to the panel bounds. */
+  /**
+   * Whether children are visually/interactively clipped to the panel bounds.
+   * Serialized as the official `clips_children` property.
+   */
   clip?: boolean;
 }
 
@@ -73,7 +76,7 @@ export class UiPanel extends UiContainer {
   override build(): Record<string, unknown> {
     const def = super.build();
     if (this.texture !== undefined) def.texture = this.texture;
-    if (this.clip !== undefined) def.clip = this.clip;
+    if (this.clip !== undefined) def.clips_children = this.clip;
     if (this.controls.length > 0) def.controls = this.buildControls();
     return def;
   }

@@ -57,17 +57,23 @@ export interface UiImageOptions extends UiElementOptions {
   texture: string;
   /** Whether the image tiles. */
   tiled?: boolean;
-  /** UV bounds `[u, v, u2, v2]`. */
-  uv?: [number, number, number, number];
+  /** Start position of the texture mapping `[u, v]`. */
+  uv?: [number, number];
+  /** Size of the texture mapping `[width, height]`. */
+  uvSize?: [number, number];
   /** Whether to use a nine-slice. */
   nineSlice?: boolean;
+  /** Nine-slice size: `n` or `[x0, y0, x1, y1]`. */
+  nineSliceSize?: number | [number, number, number, number];
 }
 
 export class UiImage extends UiElement {
   texture: string;
   tiled: boolean | undefined;
-  uv: [number, number, number, number] | undefined;
+  uv: [number, number] | undefined;
+  uvSize: [number, number] | undefined;
   nineSlice: boolean | undefined;
+  nineSliceSize: number | [number, number, number, number] | undefined;
 
   constructor(options: UiImageOptions) {
     super('image', options);
@@ -75,7 +81,9 @@ export class UiImage extends UiElement {
     this.texture = options.texture;
     this.tiled = options.tiled;
     this.uv = options.uv;
+    this.uvSize = options.uvSize;
     this.nineSlice = options.nineSlice;
+    this.nineSliceSize = options.nineSliceSize;
   }
 
   setTexture(texture: string): this {
@@ -86,12 +94,22 @@ export class UiImage extends UiElement {
     this.tiled = tiled;
     return this;
   }
-  setUV(uv: [number, number, number, number]): this {
+  /** Sets the texture-map start position `[u, v]`. */
+  setUV(uv: [number, number]): this {
     this.uv = uv;
+    return this;
+  }
+  /** Sets the texture-map size `[width, height]`. */
+  setUVSize(uvSize: [number, number]): this {
+    this.uvSize = uvSize;
     return this;
   }
   setNineSlice(nineSlice: boolean): this {
     this.nineSlice = nineSlice;
+    return this;
+  }
+  setNineSliceSize(size: number | [number, number, number, number]): this {
+    this.nineSliceSize = size;
     return this;
   }
 
@@ -100,7 +118,9 @@ export class UiImage extends UiElement {
     def.texture = this.texture;
     if (this.tiled !== undefined) def.tiled = this.tiled;
     if (this.uv !== undefined) def.uv = this.uv;
+    if (this.uvSize !== undefined) def.uv_size = this.uvSize;
     if (this.nineSlice !== undefined) def.nine_slice = this.nineSlice;
+    if (this.nineSliceSize !== undefined) def.nineslice_size = this.nineSliceSize;
     return def;
   }
 }

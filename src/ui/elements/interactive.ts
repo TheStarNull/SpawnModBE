@@ -237,12 +237,23 @@ export class UiEditBox extends UiElement {
 
 /** A selection wheel element. */
 export interface UiSelectionWheelOptions extends UiElementOptions {
-  /** Any selection-wheel specific property (passed through). */
+  /** Any selection-wheel specific property (passed through to output). */
   [k: string]: unknown;
 }
+
+/** Base option fields already consumed by `UiElement`. */
+const KNOWN_OPTION_KEYS = new Set([
+  'name', 'size', 'offset', 'anchorFrom', 'anchorTo', 'alpha', 'layer',
+  'visible', 'enabled', 'variables', 'anims', 'bindings', 'extra',
+]);
 
 export class UiSelectionWheel extends UiElement {
   constructor(options: UiSelectionWheelOptions) {
     super('selection_wheel', options);
+    // Pass through any selection-wheel-specific property that is not a base
+    // option, so fields like `button_mappings` are not silently dropped.
+    for (const [key, value] of Object.entries(options)) {
+      if (!KNOWN_OPTION_KEYS.has(key)) this.setProperty(key, value);
+    }
   }
 }

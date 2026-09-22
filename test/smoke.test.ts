@@ -1269,7 +1269,11 @@ function testJsonUi() {
   assert.equal(json.hello_label.text, 'Hello World');
   assert.deepEqual(json.hello_label.color, [1, 1, 1]);
   assert.equal(json.icon.texture, 'textures/ui/icon');
-  assert.deepEqual(json.root_panel.controls, ['hello_label@my_screen.hello_label', 'icon@my_screen.icon']);
+  // controls must be normalized to the official { "ref": {} } object form.
+  assert.deepEqual(json.root_panel.controls, [
+    { 'hello_label@my_screen.hello_label': {} },
+    { 'icon@my_screen.icon': {} },
+  ]);
   assert.equal(ui.path, 'ui/my_screen.json');
 
   // UiWorld defs + global variables.
