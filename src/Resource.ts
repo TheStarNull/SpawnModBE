@@ -34,6 +34,7 @@ import { type FrameSequence } from './rp/FrameSequence.js';
 import { type ItemTextureAtlas } from './rp/ItemTextureAtlas.js';
 import { type LangFile } from './rp/LangFile.js';
 import { type SoundBatch } from './rp/SoundBatch.js';
+import { type Fog } from './fog/index.js';
 import { type UiDefs } from './ui/UiDefs.js';
 import { type UiFile } from './ui/UiFile.js';
 import { type UiGlobalVariables } from './ui/UiGlobalVariables.js';
@@ -575,6 +576,18 @@ export class Resource extends PackBase {
     }
     this.writeFlipbookTextures(entries);
     return FLIPBOOK_TEXTURE_PATH;
+  }
+
+  /**
+   * Adds a fog definition to the resource pack.
+   * Writes the fog JSON to `fogs/<shortName>.json`.
+   * @param fog The fog definition.
+   * @returns The pack-relative path that was written.
+   */
+  addFog(fog: Fog): string {
+    const path = `fogs/${fog.fileName}`;
+    this.addFile(path, JSON.stringify(fog.buildJson(), null, 2));
+    return path;
   }
 
   /**

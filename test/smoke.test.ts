@@ -67,6 +67,7 @@ import {
   Feature,
   FeatureRule,
   Biome,
+  Fog,
   emitterRateInstant,
   emitterRateSteady,
   climate,
@@ -1553,6 +1554,27 @@ function testBiome() {
   console.log('[ok] Biome generates and lands on the behavior pack');
 }
 
+function testFog() {
+  const fog = new Fog({
+    identifier: 'mymod:ruby_fog',
+    distance: { air: { fog_start: 0, fog_end: 100, fog_color: '#FFAAAA', render_distance_type: 'render' } },
+  });
+  assert.equal(fog.fileName, 'ruby_fog.json');
+  const fj = fog.buildJson() as AnyObj;
+  const settings = fj['minecraft:fog_settings'] as AnyObj;
+  assert.equal(settings.description.identifier, 'mymod:ruby_fog');
+  const air = settings.distance.air as AnyObj;
+  assert.equal(air.fog_color, '#FFAAAA');
+  assert.equal(air.render_distance_type, 'render');
+  const waterDefault = new Fog({ identifier: 'mymod:w_fog', distance: { water: { fog_start: 1, fog_end: 2, fog_color: '#0000FF' } } }).buildJson() as AnyObj;
+  assert.equal(((waterDefault['minecraft:fog_settings'] as AnyObj).distance.water as AnyObj).render_distance_type, 'fixed', 'render_distance_type defaults to fixed');
+
+  const rp = new Resource({ name: 'FX RP', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-rp' } });
+  assert.equal(rp.addFog(fog), 'fogs/ruby_fog.json');
+  assert.ok(rp.hasFile('fogs/ruby_fog.json'));
+  console.log('[ok] Fog generates and lands on the resource pack');
+}
+
 function testRoutingItems() {
   const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
   const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
@@ -1855,6 +1877,7 @@ await testCliVersionAndHelp();
 testParticle();
 testFeatureAndFeatureRule();
 testBiome();
+testFog();
 testAddItemName();
 testRoutingItems();
 testRoutingEntities();

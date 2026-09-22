@@ -44,6 +44,8 @@ export { FeatureRule } from './feature/index.js';
 export type { FeatureRuleConfig, FeatureRuleDistribution, ResolvedFeatureRuleConfig } from './feature/index.js';
 export { Biome, climate, surfaceParameters, biomeTags } from './biome/index.js';
 export type { BiomeConfig, ResolvedBiomeConfig, ClimateOptions } from './biome/index.js';
+export { Fog } from './fog/index.js';
+export type { FogConfig, FogDistanceLayer, ResolvedFogConfig, ResolvedFogDistanceLayer } from './fog/index.js';
 export type {
   BlockBox,
   BlockBoxVec,
