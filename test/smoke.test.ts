@@ -1460,6 +1460,87 @@ function testAddItemName() {
   console.log('[ok] Resource.addItemName merges item display names');
 }
 
+function testRoutingItems() {
+  const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
+  const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
+  const chainsaw = new Tools({
+    identifier: 'route:chainsaw',
+    name: 'Chainsaw',
+    texturePath: 'textures/items/chainsaw',
+    dynamicModel: {
+      bones: [{ name: 'blade', pivot: [0, 0, 0], cubes: [{ origin: [-1, 0, -1], size: [2, 1, 2], uv: [0, 0] }] }],
+      animations: { spin: { bone: 'blade', rotation: ['0', 'q.life_time * 360', '0'] } },
+    },
+  });
+  const disc = new RecordDisc({ identifier: 'route:disc', name: 'Route Disc', comparatorSignal: 1, duration: 3, soundEvent: 'record.route' });
+  const ret = mod.add([ruby, chainsaw, disc]);
+  assert.equal(ret, mod, 'add returns this for chaining');
+  assert.ok(mod.behavior!.hasFile('items/ruby.json'));
+  assert.ok(mod.behavior!.hasFile('items/chainsaw.json'));
+  assert.ok(mod.behavior!.hasFile('items/disc.json'));
+  assert.ok(mod.resource.hasFile('textures/items/route_ruby.png'));
+  assert.ok(mod.resource.hasFile('attachables/chainsaw.json'));
+  assert.ok(mod.resource.hasFile('models/entity/chainsaw.geo.json'));
+  assert.ok(mod.resource.hasFile('animations/chainsaw.animation.json'));
+  const defs = JSON.parse(mod.resource.getFile('sounds/sound_definitions.json')!.toString('utf8')) as AnyObj;
+  assert.ok(defs.sound_definitions['record.route'], 'record disc sound auto-registered');
+  const lang = mod.resource.getFile('texts/en_US.lang')!.toString('utf8');
+  assert.ok(lang.includes('item.route:ruby.name=Route Ruby'));
+  mod.add(ruby);
+  const lang2 = mod.resource.getFile('texts/en_US.lang')!.toString('utf8');
+  assert.equal(lang2.match(/item\.route:ruby\.name=/g)!.length, 1, 'no duplicate lang keys');
+  console.log('[ok] mod.add routes items (BP + RP assets + sound + lang)');
+}
+
+function testRoutingEntities() {
+  const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-entities' } });
+  const bp = new EntityBP({ identifier: 'route:goblin', components: { 'minecraft:type_family': { family: ['goblin'] } } });
+  const rp = new EntityRP({ identifier: 'route:goblin' });
+  const rc = new RenderController({ id: 'controller.render.goblin', geometry: 'geometry.goblin', materials: [{ '*': 'material.default' }], textures: ['texture.default'] });
+  const rules = new SpawnRules({ identifier: 'route:goblin', populationControl: 'monster', conditions: [{ weight: 100 }] });
+  mod.add(bp, rp, rc, rules);
+  assert.ok(mod.behavior!.hasFile('entities/goblin.json'));
+  assert.ok(mod.resource.hasFile('entity/goblin.entity.json'));
+  assert.ok(mod.resource.hasFile('render_controllers/goblin.rc.json'));
+  assert.ok(mod.behavior!.hasFile('spawn_rules/goblin.json'));
+  console.log('[ok] mod.add routes entity quartet to the right packs');
+}
+
+function testRoutingRpModules() {
+  const mod = new ModMain({ name: 'Route', uuid: { seed: 'route-rp' } });
+  const lang = new LangFile({ locale: 'en_US', entries: [['item.route:gem.name', 'Gem']] });
+  const atlas = new ItemTextureAtlas();
+  atlas.set('gem', 'textures/items/gem');
+  const atch = new Attachable({
+    identifier: 'route:telescope',
+    materials: { default: 'entity_alphatest' },
+    textures: { default: 'textures/entity/telescope' },
+    geometry: { default: 'geometry.telescope' },
+  });
+  const batch = new SoundBatch({ sounds: [{ soundId: 'route:whoosh', soundPath: 'sounds/route/whoosh' }] });
+  const model = new DynamicItemModel({ identifier: 'route:wand', bones: [{ name: 'stick', pivot: [0, 0, 0], cubes: [{ origin: [0, 0, 0], size: [1, 1, 1], uv: [0, 0] }] }] });
+  const seq = new FrameSequence({ controllerId: 'controller.render.frames', geometry: 'geometry.frames', frameTextures: ['texture.frame0', 'texture.frame1'] });
+  const flip = new FlipbookTextures({ atlasTile: 'magma', flipbookTexture: 'textures/blocks/magma' });
+  const uiFile = new UiFile({ fileName: 'route.json', namespace: 'route', elements: [{ name: 'lbl', type: 'label', text: 'hi' }] });
+  const uiDefs = new UiDefs({ defs: ['ui/route.json'] });
+  const uiVars = new UiGlobalVariables({ variables: { foo: 'bar' } });
+  mod.add(lang, atlas, atch, batch, model, seq, flip, uiFile, uiDefs, uiVars);
+  assert.ok(mod.resource.hasFile('texts/en_US.lang'));
+  assert.ok(mod.resource.hasFile('textures/item_texture.json'));
+  assert.ok(mod.resource.hasFile('attachables/telescope.json'));
+  assert.ok(mod.resource.hasFile('sounds/sound_definitions.json'));
+  assert.ok(mod.resource.hasFile('models/entity/wand.geo.json'));
+  assert.ok(mod.resource.hasFile('render_controllers/frames.rc.json'));
+  const atlasJson = JSON.parse(mod.resource.getFile('textures/item_texture.json')!.toString('utf8')) as AnyObj;
+  assert.ok(atlasJson.texture_data['texture.frame0'], 'frame textures registered');
+  assert.ok(mod.resource.hasFile('textures/flipbook_textures.json'));
+  assert.ok(mod.resource.hasFile('ui/route.json'));
+  assert.ok(mod.resource.hasFile('ui/_ui_defs.json'));
+  assert.ok(mod.resource.hasFile('ui/_global_variables.json'));
+  mod.add();
+  console.log('[ok] mod.add routes RP modules (lang/atlas/attachable/sound/model/sequence/flipbook/ui)');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1593,4 +1674,7 @@ await testCliInitRefusesNonEmptyDir();
 await testCliInitForceOverwrites();
 await testCliVersionAndHelp();
 testAddItemName();
+testRoutingItems();
+testRoutingEntities();
+testRoutingRpModules();
 console.log('\nAll SpawnModBE smoke tests passed.');

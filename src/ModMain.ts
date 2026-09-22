@@ -44,6 +44,7 @@ import type {
 import { UuidPool } from './uuid.js';
 import { createZip } from './zip.js';
 import { sanitizeFileName } from './util.js';
+import { addEntries, pairLootPaths, type Addable } from './routing.js';
 
 /** Fills in every optional field so downstream logic can rely on concrete values. */
 function resolveConfig(config: ModMainConfig): ResolvedModMainConfig {
@@ -283,5 +284,16 @@ export class ModMain {
     }
 
     return createZip(entries);
+  }
+
+  /**
+   * Unified wiring: routes any supported generator to the correct pack(s).
+   *
+   * Accepts instances, `[recipe/loot/trade, path]` tuples, nested arrays, and
+   * `add(table, path)` two-arg forms for loot/trade. Returns `this` for chaining.
+   */
+  add(...entries: Array<Addable | string>): this {
+    addEntries(this, pairLootPaths(entries));
+    return this;
   }
 }

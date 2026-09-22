@@ -6,6 +6,7 @@
  */
 
 export { ModMain } from './ModMain.js';
+export type { Addable, DefineSpec } from './routing.js';
 export { Behavior } from './Behavior.js';
 export { Resource } from './Resource.js';
 export {
