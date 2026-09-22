@@ -142,6 +142,13 @@ export class Tools extends Item {
     const useEfficiency = config.useEfficiency ?? false;
     const handEquipped = config.handEquipped ?? true;
 
+    if (config.maxDurability !== undefined && config.maxDurability < 1) {
+      throw new Error('Tools maxDurability must be >= 1.');
+    }
+    if (config.enchantableValue !== undefined && config.enchantableValue < 0) {
+      throw new Error('Tools enchantableValue must be >= 0.');
+    }
+
     this.config = {
       ...this.config,
       maxDurability: config.maxDurability,

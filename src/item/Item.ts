@@ -285,6 +285,9 @@ export class Item {
     if (config.useAnimation && !USE_ANIMATIONS.includes(config.useAnimation)) {
       throw new Error(`Unknown use animation: ${config.useAnimation}`);
     }
+    if (config.maxStackSize !== undefined && config.maxStackSize < 1) {
+      throw new Error('Item maxStackSize must be >= 1.');
+    }
     this.config = {
       ...config,
       identifier: config.identifier,

@@ -115,8 +115,8 @@ export interface DynamicItemModelConfig {
   formatVersion?: string;
   /**
    * The animation loop duration (seconds) for each generated animation.
-   * Only relevant when `animations` is set. Defaults to `0` (loop every frame,
-   * suitable for time-driven Molang like `q.life_time`).
+   * Only relevant when `animations` is set. Defaults to `1` (a positive value,
+   * matching vanilla animation conventions; `0` can break playback).
    */
   animationLength?: number;
 }
@@ -177,7 +177,7 @@ export class DynamicItemModel {
       renderControllers: config.renderControllers ?? ['controller.render.item_default'],
       geometryFormatVersion: config.geometryFormatVersion ?? '1.16.0',
       formatVersion: config.formatVersion ?? '1.10.0',
-      animationLength: config.animationLength ?? 0,
+      animationLength: config.animationLength ?? 1,
     };
   }
 
