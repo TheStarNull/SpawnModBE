@@ -61,6 +61,24 @@ export class LangFile {
     return this.entries.get(key);
   }
 
+  /**
+   * Loads existing `.lang` text into this file, adding any keys that are not
+   * already present (existing keys in this LangFile win).
+   */
+  load(langText: string): this {
+    if (!langText) return this;
+    for (const line of langText.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed === '' || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1);
+      if (!this.entries.has(key)) this.entries.set(key, value);
+    }
+    return this;
+  }
+
   /** Removes a key. Returns `true` if it existed. */
   remove(key: string): boolean {
     return this.entries.delete(key);

@@ -419,6 +419,10 @@ export class Resource extends PackBase {
    */
   addLang(lang: LangFile): string {
     const path = lang.filePath;
+    // Merge with any existing lang file so keys written by other helpers
+    // (e.g. `addBlockName`) are preserved instead of being clobbered.
+    const existing = this.getFile(path)?.toString('utf8');
+    if (existing) lang.load(existing);
     this.addFile(path, lang.toString());
     return path;
   }

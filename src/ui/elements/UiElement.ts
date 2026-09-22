@@ -95,7 +95,10 @@ export abstract class UiElement {
     }
     this.type = type;
     this.name = options.name;
-    this.namespace = options.variables?.['__namespace__'] as string | undefined ?? '';
+    // The namespace is assigned explicitly by `UiFile.setNamespace()` when the
+    // element is added to a screen. Do NOT infer it from user variables (a key
+    // named `__namespace__` would be wrongly consumed and leaked to output).
+    this.namespace = '';
     this.opts = { ...options };
   }
 

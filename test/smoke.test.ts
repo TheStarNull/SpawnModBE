@@ -1181,7 +1181,14 @@ function testBlockIntegration() {
   const lang2 = mod.resource.getFile('texts/en_US.lang')!.toString();
   assert.equal(lang2.split('tile.wiki:lamp.name=').length - 1, 1, 'no duplicate tile keys');
   assert.ok(lang2.includes('tile.wiki:lamp.name=Renamed Lamp'));
-  console.log('[ok] Block integrates into BP + RP (terrain/lang)');
+
+  // addLang must MERGE with existing keys (not clobber them).
+  const other = new LangFile({ entries: [['item.mymod:ruby.name', 'Ruby']] });
+  mod.resource.addLang(other);
+  const lang3 = mod.resource.getFile('texts/en_US.lang')!.toString();
+  assert.ok(lang3.includes('item.mymod:ruby.name=Ruby'), 'addLang new key written');
+  assert.ok(lang3.includes('tile.wiki:lamp.name=Renamed Lamp'), 'addLang keeps existing tile key');
+  console.log('[ok] Block integrates into BP + RP (terrain/lang + lang merge)');
 }
 
 function testBlockStatesAndFlipbook() {
