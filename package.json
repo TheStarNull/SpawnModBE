@@ -1,25 +1,30 @@
 {
   "name": "spawnmodbe",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A TypeScript framework that generates Minecraft Bedrock Edition (MCBE) mods/addons via the Script API (SAPI).",
   "license": "MIT",
   "type": "module",
-  "main": "dist/src/index.js",
-  "types": "dist/src/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "spawnmodbe": "dist/cli.js"
+  },
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
-      "import": "./dist/src/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
     "test": "npm run build:test && node dist/test/smoke.test.js",
     "build:test": "tsc -p tsconfig.test.json",
+    "cli": "npm run build && node dist/cli.js",
     "example": "npm run build:test && node dist/example/index.js",
     "example:no-sapi": "npm run build:test && node dist/example/example-no-sapi.js",
     "typecheck": "tsc --noEmit"

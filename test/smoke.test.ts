@@ -7,7 +7,8 @@
  */
 
 import { strict as assert } from 'node:assert';
-import { readFile as readFileFs, writeFile as writeFileFs } from 'node:fs/promises';
+import { readFile as readFileFs, writeFile as writeFileFs, mkdtemp as mkdtempFs, rm as rmFs, access as accessFs, mkdir as mkdirFs } from 'node:fs/promises';
+import { tmpdir as tmpdirOs } from 'node:os';
 import { join as joinPath } from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 
@@ -63,6 +64,7 @@ import {
   killedByPlayer,
   setCount,
 } from '../src/index.js';
+import { runCli } from '../src/cli.js';
 
 type AnyObj = Record<string, any>;
 
@@ -1444,6 +1446,87 @@ function testPositionalConstructor() {
   console.log('[ok] Positional constructor works');
 }
 
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await accessFs(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function testCliInitNoSapi() {
+  const dir = await mkdtempFs(joinPath(tmpdirOs(), 'spawnmodbe-cli-'));
+  const code = await runCli(['init', dir, '--name', 'testmod', '--description', 'A test mod', '--author', 'tester', '--no-sapi', '--no-install']);
+  assert.equal(code, 0, 'init exits 0');
+  const pkg = JSON.parse(await readFileFs(joinPath(dir, 'package.json'), 'utf8')) as AnyObj;
+  assert.equal(pkg.name, 'testmod');
+  assert.equal(pkg.private, true);
+  assert.ok(pkg.dependencies?.spawnmodbe, 'scaffold depends on spawnmodbe');
+  const src = await readFileFs(joinPath(dir, 'src/index.ts'), 'utf8');
+  assert.ok(!src.includes('sapi:'), 'no-sapi scaffold omits the sapi block');
+  assert.ok(await pathExists(joinPath(dir, 'tsconfig.json')));
+  assert.ok(await pathExists(joinPath(dir, '.gitignore')));
+  assert.ok(await pathExists(joinPath(dir, 'README.md')));
+  console.log('[ok] CLI init (no-sapi) scaffolds a project');
+  await rmFs(dir, { recursive: true, force: true });
+}
+
+async function testCliInitSapiDefaultsName() {
+  const base = await mkdtempFs(joinPath(tmpdirOs(), 'spawnmodbe-cli-'));
+  const dir = joinPath(base, 'my-mod-dir');
+  const code = await runCli(['init', dir, '--no-install']);
+  assert.equal(code, 0, 'init exits 0');
+  const pkg = JSON.parse(await readFileFs(joinPath(dir, 'package.json'), 'utf8')) as AnyObj;
+  assert.equal(pkg.name, 'my-mod-dir');
+  const src = await readFileFs(joinPath(dir, 'src/index.ts'), 'utf8');
+  assert.ok(src.includes('sapi:'), 'default scaffold includes a sapi block');
+  console.log('[ok] CLI init (sapi, default name) scaffolds a project');
+  await rmFs(base, { recursive: true, force: true });
+}
+
+async function testCliInitRefusesNonEmptyDir() {
+  const dir = await mkdtempFs(joinPath(tmpdirOs(), 'spawnmodbe-cli-'));
+  await writeFileFs(joinPath(dir, 'custom.txt'), 'keep me');
+  const code = await runCli(['init', dir, '--no-install']);
+  assert.notEqual(code, 0, 'refuses a non-empty target dir without --force');
+  assert.equal(await readFileFs(joinPath(dir, 'custom.txt'), 'utf8'), 'keep me', 'existing file untouched');
+  console.log('[ok] CLI init refuses a non-empty dir without --force');
+  await rmFs(dir, { recursive: true, force: true });
+}
+
+async function testCliInitForceOverwrites() {
+  const dir = await mkdtempFs(joinPath(tmpdirOs(), 'spawnmodbe-cli-'));
+  await mkdirFs(joinPath(dir, 'src'), { recursive: true });
+  await writeFileFs(joinPath(dir, 'src/index.ts'), '// sentinel');
+  const code = await runCli(['init', dir, '--force', '--no-install']);
+  assert.equal(code, 0, 'init --force exits 0');
+  const src = await readFileFs(joinPath(dir, 'src/index.ts'), 'utf8');
+  assert.ok(!src.includes('sentinel'), 'force overwrites conflicting files');
+  assert.ok(src.includes("from 'spawnmodbe'"), 'scaffold imports the framework');
+  console.log('[ok] CLI init --force overwrites conflicting files');
+  await rmFs(dir, { recursive: true, force: true });
+}
+
+async function testCliVersionAndHelp() {
+  let out = '';
+  const origLog = console.log;
+  console.log = (m?: unknown) => { out += String(m ?? '') + '\n'; };
+  try {
+    const versionCode = await runCli(['--version']);
+    assert.equal(versionCode, 0, '--version exits 0');
+    assert.match(out, /^\d+\.\d+\.\d+/);
+    out = '';
+    const helpCode = await runCli(['--help']);
+    assert.equal(helpCode, 0, '--help exits 0');
+    assert.ok(out.includes('init'), '--help lists the init command');
+    assert.ok(out.includes('--version'), '--help lists --version');
+  } finally {
+    console.log = origLog;
+  }
+  console.log('[ok] CLI --version and --help work');
+}
+
 await testWriteToDisk();
 await testAddDirectory();
 testPackFiles();
@@ -1490,4 +1573,9 @@ testModMain();
 testDeterministicUuids();
 testPositionalConstructor();
 testZipOutput();
+await testCliInitNoSapi();
+await testCliInitSapiDefaultsName();
+await testCliInitRefusesNonEmptyDir();
+await testCliInitForceOverwrites();
+await testCliVersionAndHelp();
 console.log('\nAll SpawnModBE smoke tests passed.');

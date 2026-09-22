@@ -33,6 +33,7 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🎞️ **方块纹理动画**：`FlipbookTextures`（`flipbook_textures.json` 动画参数，岩浆/水式动画）
 - 🔗 **链式 set 方法**：`Item`/`Block`/`EntityBP` 支持 `.setXxx()` 返回自身，一行串多个配置（含 `setLoot` 关联战利品表）
 - 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含完整面向对象控件（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`/`UiToggle`/`UiDropdown`/`UiSlider`/`UiEditBox`/`UiScrollView`/`UiFactory`/`UiCustom` 等）自动注册 `_ui_defs.json`
+- 🧩 **CLI 脚手架**：`npx spawnmodbe init` 一键生成可编译的 TypeScript 模组工程（零运行时依赖，含 SAPI 入口 / 纯资源包两种模式）
 - 🎯 支持 **对象参数** 与 **位置参数** 两种构造方式
 - 🔒 全程 `strict` TypeScript，零运行时依赖（构建期仅需 `typescript` 与 `@types/node`）
 - ✅ 内置 smoke test，`npm test` 一键验证
@@ -1103,6 +1104,40 @@ mod.resource.addUiFile(ui);
 
 ---
 
+## 🧩 CLI 工具
+
+除了作为库使用，`spawnmodbe` 也提供命令行脚手架，用于一键生成可编译的模组工程：
+
+```bash
+# 在当前目录生成一个模组工程
+npx spawnmodbe init
+
+# 指定目录、名称、说明、作者，也可不带行为包（纯资源包）
+npx spawnmodbe init ./my-mod --name "My Mod" --description "..." --author "devx" --no-sapi
+
+# 常用参数
+npx spawnmodbe --version   # 查看版本
+npx spawnmodbe --help      # 查看用法
+```
+
+`init` 会写入：`package.json`（含 `spawnmodbe` 依赖 + `build`/`pack` 脚本）、`tsconfig.json`、
+`src/index.ts`（示例模组 + 可选 SAPI 入口）、`.gitignore`、`README.md`。执行 `npm run pack`
+即可编译并把模组打包成 `out/<名称>.mcaddon`。
+
+| 参数 | 说明 |
+| --- | --- |
+| `<dir>` | 目标目录（默认当前目录；目录非空需配合 `--force`） |
+| `--name <name>` | 模组显示名（默认取目录名） |
+| `--description <desc>` | 模组说明 |
+| `--author <author>` | 作者 |
+| `--no-sapi` | 仅生成资源包（不生成行为包 / 脚本入口） |
+| `--force` | 在非空目录中覆盖脚手架文件（其它文件不动） |
+| `--no-install` | 脚手架完成后跳过 `npm install` |
+
+CLI 零运行时依赖，仅使用 Node 内置模块；`bin` 指向编译后的 `dist/cli.js`。
+
+---
+
 ## ⚙️ 配置项
 
 ### `ModMainConfig`
@@ -1173,6 +1208,7 @@ SpawnModBE/
 │   ├── types.ts        # 全部类型定义
 │   ├── uuid.ts         # 确定性 UUID 池
 │   ├── assets.ts       # 默认包图标生成
+│   ├── cli.ts          # CLI（bin: spawnmodbe init）脚手架
 │   ├── item/           # 物品体系（Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc）
 │   ├── recipe/         # 配方体系（Shaped/Shapeless/Furnace/BrewingMix/BrewingContainer）
 │   ├── loot/           # 战利品表（LootTable + 辅助函数）
@@ -1186,7 +1222,7 @@ SpawnModBE/
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（52 项）
+│   ├── smoke.test.ts   # 冒烟测试（57 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json
@@ -1211,7 +1247,7 @@ SpawnModBE/
 - [x] 方块生成器（`Block`：BP 定义 + states/traits/permutations + terrain_texture + tile 本地化）
 - [x] 方块纹理动画（`FlipbookTextures`：flipbook_textures.json）
 - [x] JSON UI 生成器（`UiFile` / `UiDefs` / `UiGlobalVariables`）
-- [ ] CLI 工具（`npx spawnmodbe init`）
+- [x] CLI 工具（`npx spawnmodbe init`）
 
 ---
 
