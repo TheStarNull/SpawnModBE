@@ -161,6 +161,12 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
     return;
   }
 
+  if (entry instanceof Recipe) {
+    requireBehavior(mod, 'recipe');
+    mod.behavior!.addRecipe(entry);
+    return;
+  }
+
   if (entry instanceof LootTable || entry instanceof TradeTable) {
     requirePath([entry]);
     return;

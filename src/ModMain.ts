@@ -28,8 +28,22 @@
 import { resolve } from 'node:path';
 
 import { Behavior } from './Behavior.js';
+import { Block } from './block/index.js';
+import { EntityBP, EntityRP, RenderController, SpawnRules } from './entity/index.js';
+import { Item } from './item/index.js';
+import { BrewingContainer, BrewingMix, Furnace, Shaped, Shapeless } from './recipe/index.js';
+import { LootTable } from './loot/index.js';
 import { packFolderName } from './pack.js';
 import { Resource } from './Resource.js';
+import { TradeTable } from './trade/index.js';
+import { UiFile } from './ui/index.js';
+import type { BlockConfig } from './block/index.js';
+import type { EntityBPConfig, EntityRPConfig, RenderControllerConfig, SpawnRulesConfig } from './entity/index.js';
+import type { ItemConfig } from './item/index.js';
+import type { BrewingContainerConfig, BrewingMixConfig, FurnaceConfig, ShapedConfig, ShapelessConfig } from './recipe/index.js';
+import type { LootTableConfig } from './loot/index.js';
+import type { TradeTableConfig } from './trade/index.js';
+import type { UiFileConfig } from './ui/index.js';
 import type {
   BehaviorPackManifest,
   ModBuildResult,
@@ -313,5 +327,40 @@ export class ModMain {
       ...(spec.rp ?? []),
     ]);
     return this;
+  }
+
+  /** Constructs + wires an {@link Item}. Returns the instance for further chaining. */
+  item(config: ItemConfig): Item { return this.addAndReturn(new Item(config)); }
+  /** Constructs + wires a {@link Block}. */
+  block(config: BlockConfig): Block { return this.addAndReturn(new Block(config)); }
+  /** Constructs + wires an {@link EntityBP}. */
+  entityBP(config: EntityBPConfig): EntityBP { return this.addAndReturn(new EntityBP(config)); }
+  /** Constructs + wires an {@link EntityRP}. */
+  entityRP(config: EntityRPConfig): EntityRP { return this.addAndReturn(new EntityRP(config)); }
+  /** Constructs + wires a {@link RenderController}. */
+  renderController(config: RenderControllerConfig): RenderController { return this.addAndReturn(new RenderController(config)); }
+  /** Constructs + wires {@link SpawnRules}. */
+  spawnRules(config: SpawnRulesConfig): SpawnRules { return this.addAndReturn(new SpawnRules(config)); }
+  /** Constructs + wires a {@link Shaped} recipe. */
+  shaped(config: ShapedConfig): Shaped { return this.addAndReturn(new Shaped(config)); }
+  /** Constructs + wires a {@link Shapeless} recipe. */
+  shapeless(config: ShapelessConfig): Shapeless { return this.addAndReturn(new Shapeless(config)); }
+  /** Constructs + wires a {@link Furnace} recipe. */
+  furnace(config: FurnaceConfig): Furnace { return this.addAndReturn(new Furnace(config)); }
+  /** Constructs + wires a {@link BrewingMix} recipe. */
+  brewingMix(config: BrewingMixConfig): BrewingMix { return this.addAndReturn(new BrewingMix(config)); }
+  /** Constructs + wires a {@link BrewingContainer} recipe. */
+  brewingContainer(config: BrewingContainerConfig): BrewingContainer { return this.addAndReturn(new BrewingContainer(config)); }
+  /** Constructs + wires a {@link LootTable} at `path`. */
+  loot(config: LootTableConfig, path: string): LootTable { return this.addAndReturn(new LootTable(config), path); }
+  /** Constructs + wires a {@link TradeTable} at `path`. */
+  trade(config: TradeTableConfig, path: string): TradeTable { return this.addAndReturn(new TradeTable(config), path); }
+  /** Constructs + wires a {@link UiFile}. */
+  ui(config: UiFileConfig): UiFile { return this.addAndReturn(new UiFile(config)); }
+
+  private addAndReturn<T extends object>(instance: T, path?: string): T {
+    if (path !== undefined) this.add(instance as Addable, path);
+    else this.add(instance as Addable);
+    return instance;
   }
 }

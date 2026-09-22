@@ -1612,6 +1612,22 @@ function testDefine() {
   console.log('[ok] define() wires a full declarative batch');
 }
 
+function testFactories() {
+  const mod = new ModMain({ name: 'Factory', sapi: 'scripts/main.js', uuid: { seed: 'factories' } });
+  const ruby = mod.item({ identifier: 'route:ruby', name: 'Ruby', texturePath: 'textures/items/ruby' });
+  assert.ok(ruby instanceof Item && mod.behavior!.hasFile('items/ruby.json') && mod.resource.hasFile('textures/items/ruby.png'));
+  const lamp = mod.block({ identifier: 'route:lamp', components: { 'minecraft:material_instances': { '*': { texture: 'route_lamp' } } } });
+  assert.ok(mod.behavior!.hasFile('blocks/lamp.json'));
+  const sword = mod.shaped({ identifier: 'route:sword', tags: ['crafting_table'], pattern: ['X'], key: { X: 'minecraft:diamond' }, result: { item: 'route:sword' } });
+  assert.ok(mod.behavior!.hasFile('recipes/sword.json'));
+  const loot = mod.loot({ pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }] }, 'loot_tables/factory');
+  assert.ok(mod.behavior!.hasFile('loot_tables/factory.json'));
+  const screen = mod.ui({ fileName: 'factory.json', namespace: 'factory', elements: [{ name: 'l', type: 'label', text: 'x' }] });
+  assert.ok(mod.resource.hasFile('ui/factory.json'));
+  assert.ok(lamp instanceof Block && sword instanceof Shaped && loot instanceof LootTable && screen instanceof UiFile, 'factories return the constructed instances');
+  console.log('[ok] factories construct and auto-wire');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1751,4 +1767,5 @@ testRoutingRpModules();
 testRoutingPathsAndErrors();
 testRoutingErrors();
 testDefine();
+testFactories();
 console.log('\nAll SpawnModBE smoke tests passed.');
