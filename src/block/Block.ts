@@ -181,6 +181,25 @@ export class Block {
     return this.identifier;
   }
 
+  /**
+   * The texture shortname this block actually references in its
+   * `minecraft:material_instances` (`*` instance when present), falling back to
+   * the block identifier. Used by {@link Resource.addBlockTexture} so the
+   * generated `terrain_texture.json` entry lines up with the value the block
+   * points at — a mismatch otherwise leaves the block with a missing texture.
+   */
+  get renderTextureName(): string {
+    const instances = this.config.components['minecraft:material_instances'];
+    if (instances && typeof instances === 'object') {
+      const star = (instances as Record<string, unknown>)['*'];
+      if (star && typeof star === 'object') {
+        const tex = (star as { texture?: unknown }).texture;
+        if (typeof tex === 'string' && tex.trim() !== '') return tex;
+      }
+    }
+    return this.textureName;
+  }
+
   // ---- 链式 set 方法（mutate `this.config`，返回 `this` 便于串接）----
 
   /** Sets the creative category. Returns `this` for chaining. */

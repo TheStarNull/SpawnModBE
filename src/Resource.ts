@@ -392,7 +392,7 @@ export class Resource extends PackBase {
    */
   addClientEntity(entity: EntityRP): string {
     const path = `entity/${entity.fileName}`;
-    this.addFile(path, JSON.stringify(entity.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(entity.buildJson(), null, 2), `EntityRP ${entity.identifier}`);
     return path;
   }
 
@@ -406,7 +406,7 @@ export class Resource extends PackBase {
    */
   addRenderController(controller: RenderController): string {
     const path = `render_controllers/${controller.fileName}`;
-    this.addFile(path, JSON.stringify(controller.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(controller.buildJson(), null, 2), `RenderController ${controller.id}`);
     return path;
   }
 
@@ -492,17 +492,22 @@ export class Resource extends PackBase {
     options?: { placeholderColor?: [number, number, number] }
   ): string {
     const atlas = this.readTerrainTexture();
-    atlas[block.textureName] = { textures: `textures/blocks/${block.shortName}` };
+    // Key the terrain entry by the texture shortname the block actually
+    // references, and derive the PNG name from that same shortname, so the
+    // generated texture resolves instead of leaving a missing block texture.
+    const texName = block.renderTextureName;
+    const texShort = texName.includes(':') ? texName.slice(texName.indexOf(':') + 1) : texName;
+    atlas[texName] = { textures: `textures/blocks/${texShort}` };
     this.writeTerrainTexture(atlas);
 
-    const pngPath = `textures/blocks/${block.shortName}.png`;
+    const pngPath = `textures/blocks/${texShort}.png`;
     if (!this.hasFile(pngPath)) {
       this.addFile(
         pngPath,
         buildIconPng(16, options?.placeholderColor ?? [140, 140, 160])
       );
     }
-    return block.textureName;
+    return texName;
   }
 
   /**
@@ -586,7 +591,7 @@ export class Resource extends PackBase {
    */
   addFog(fog: Fog): string {
     const path = `fogs/${fog.fileName}`;
-    this.addFile(path, JSON.stringify(fog.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(fog.buildJson(), null, 2), `Fog ${fog.identifier}`);
     return path;
   }
 
@@ -616,7 +621,7 @@ export class Resource extends PackBase {
    */
   addAttachable(attachable: Attachable): string {
     const path = `attachables/${attachable.fileName}`;
-    this.addFile(path, JSON.stringify(attachable.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(attachable.buildJson(), null, 2), `Attachable ${attachable.identifier}`);
     return path;
   }
 

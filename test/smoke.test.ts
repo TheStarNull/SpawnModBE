@@ -1765,6 +1765,40 @@ function testFactories() {
   console.log('[ok] factories construct and auto-wire');
 }
 
+function testNamespaceCollision() {
+  // Two generators that map to the SAME pack path with DIFFERENT content must
+  // not silently overwrite each other — the second write must throw a clear error.
+  const mod = new ModMain({ name: 'NS', sapi: 'scripts/main.js', uuid: { seed: 'ns-collide' } });
+  const alpha = mod.item({ identifier: 'alpha:sword', name: 'Alpha Sword' });
+  assert.ok(alpha instanceof Item, 'alpha item constructs');
+  assert.ok(mod.behavior!.hasFile('items/sword.json'), 'first item written');
+  // A different item sharing the short name across namespaces must NOT clobber it.
+  assert.throws(() => mod.item({ identifier: 'beta:sword', name: 'Beta Sword' }), /already exists with different content/i);
+  // The first item must be intact.
+  const kept = JSON.parse(mod.behavior!.getFile('items/sword.json')!.toString());
+  assert.equal(kept['minecraft:item'].description.identifier, 'alpha:sword', 'first item retained after collision');
+  // Re-adding identical content is idempotent (no throw).
+  assert.doesNotThrow(() => mod.item({ identifier: 'alpha:sword', name: 'Alpha Sword' }));
+  console.log('[ok] colliding pack paths do not silently overwrite');
+}
+
+function testBlockTextureKeyMatchesReference() {
+  // When a block's material_instances references a texture shortname, the
+  // generated terrain_texture entry must be addressable by that same shortname.
+  const mod = new ModMain({ name: 'BLK', sapi: 'scripts/main.js', uuid: { seed: 'blk-tex' } });
+  const lamp = mod.block({ identifier: 'wiki:lamp', components: { 'minecraft:material_instances': { '*': { texture: 'lamp_tex' } } } });
+  const referenced = (lamp.config.components['minecraft:material_instances'] as AnyObj)['*'].texture as string;
+  const terrain = JSON.parse(mod.resource.getFile('textures/terrain_texture.json')!.toString()) as AnyObj;
+  assert.ok(terrain.texture_data[referenced], `terrain_texture must contain the referenced texture "${referenced}"`);
+  console.log('[ok] block texture key matches the material_instances reference');
+}
+
+function testIdentifierUppercaseRejected() {
+  // MCBE identifiers must be lowercase; the framework should reject uppercase.
+  assert.throws(() => new Item({ identifier: 'MyMod:RubyItem', name: 'X' }), /lowercase|identifier/i);
+  console.log('[ok] uppercase item identifiers are rejected');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1909,4 +1943,7 @@ testRoutingPathsAndErrors();
 testRoutingErrors();
 testDefine();
 testFactories();
+testNamespaceCollision();
+testBlockTextureKeyMatchesReference();
+testIdentifierUppercaseRejected();
 console.log('\nAll SpawnModBE smoke tests passed.');

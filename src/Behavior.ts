@@ -111,7 +111,7 @@ export class Behavior extends PackBase {
    */
   addItem(item: Item): string {
     const path = `items/${itemShortName(item.identifier)}.json`;
-    this.addFile(path, JSON.stringify(item.buildBehaviorJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(item.buildBehaviorJson(), null, 2), `Item ${item.identifier}`);
     return path;
   }
 
@@ -134,7 +134,7 @@ export class Behavior extends PackBase {
   addRecipe(recipe: Recipe, subPath?: string): string {
     const base = subPath ? `${subPath.replace(/(^\/|\/$)/g, '')}/` : '';
     const path = `recipes/${base}${recipe.fileName}`;
-    this.addFile(path, JSON.stringify(recipe.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(recipe.buildJson(), null, 2), `Recipe ${recipe.identifier}`);
     return path;
   }
 
@@ -160,7 +160,7 @@ export class Behavior extends PackBase {
       ? path
       : `loot_tables/${path.replace(/^\/+/, '')}`;
     const filePath = `${normalized}.json`;
-    this.addFile(filePath, JSON.stringify(lootTable.buildJson(), null, 2));
+    this.addNewFile(filePath, JSON.stringify(lootTable.buildJson(), null, 2), `LootTable ${filePath}`);
     return filePath;
   }
 
@@ -174,7 +174,7 @@ export class Behavior extends PackBase {
    */
   addEntity(entity: EntityBP): string {
     const path = `entities/${entity.fileName}`;
-    this.addFile(path, JSON.stringify(entity.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(entity.buildJson(), null, 2), `Entity ${entity.identifier}`);
     return path;
   }
 
@@ -188,7 +188,7 @@ export class Behavior extends PackBase {
    */
   addSpawnRules(rules: SpawnRules): string {
     const path = `spawn_rules/${rules.fileName}`;
-    this.addFile(path, JSON.stringify(rules.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(rules.buildJson(), null, 2), `SpawnRules ${rules.identifier}`);
     return path;
   }
 
@@ -207,7 +207,7 @@ export class Behavior extends PackBase {
       ? path
       : `trading/${path.replace(/^\/+/, '')}`;
     const filePath = `${normalized}.json`;
-    this.addFile(filePath, JSON.stringify(table.buildJson(), null, 2));
+    this.addNewFile(filePath, JSON.stringify(table.buildJson(), null, 2), `TradeTable ${filePath}`);
     return filePath;
   }
 
@@ -221,7 +221,7 @@ export class Behavior extends PackBase {
    */
   addBlock(block: Block): string {
     const path = `blocks/${block.fileName}`;
-    this.addFile(path, JSON.stringify(block.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(block.buildJson(), null, 2), `Block ${block.identifier}`);
     return path;
   }
 
@@ -233,7 +233,7 @@ export class Behavior extends PackBase {
    */
   addParticle(particle: Particle): string {
     const path = `particles/${particle.fileName}`;
-    this.addFile(path, JSON.stringify(particle.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(particle.buildJson(), null, 2), `Particle ${particle.identifier}`);
     return path;
   }
 
@@ -245,7 +245,7 @@ export class Behavior extends PackBase {
    */
   addFeature(feature: Feature): string {
     const path = `features/${feature.fileName}`;
-    this.addFile(path, JSON.stringify(feature.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(feature.buildJson(), null, 2), `Feature ${feature.identifier}`);
     return path;
   }
 
@@ -257,7 +257,7 @@ export class Behavior extends PackBase {
    */
   addFeatureRule(rule: FeatureRule): string {
     const path = `feature_rules/${rule.fileName}`;
-    this.addFile(path, JSON.stringify(rule.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(rule.buildJson(), null, 2), `FeatureRule ${rule.identifier}`);
     return path;
   }
 
@@ -269,7 +269,7 @@ export class Behavior extends PackBase {
    */
   addBiome(biome: Biome): string {
     const path = `biomes/${biome.fileName}`;
-    this.addFile(path, JSON.stringify(biome.buildJson(), null, 2));
+    this.addNewFile(path, JSON.stringify(biome.buildJson(), null, 2), `Biome ${biome.identifier}`);
     return path;
   }
 

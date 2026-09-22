@@ -93,6 +93,34 @@ export abstract class PackBase {
   }
 
   /**
+   * Adds a generated content file, refusing to silently overwrite an existing
+   * file that holds DIFFERENT content. Two generators (e.g. two items that share
+   * a short name across namespaces) must not clobber one another. Re-adding
+   * identical content is idempotent; state files that are meant to be
+   * read-modify-written should keep using {@link addFile}.
+   *
+   * @param path The pack-relative path.
+   * @param data The file bytes or UTF-8 string.
+   * @param label A human-readable description of the generator for the error.
+   */
+  addNewFile(path: string, data: Buffer | string, label: string): void {
+    const normalized = normalizeZipPath(path);
+    const incoming = typeof data === 'string' ? Buffer.from(data, 'utf8') : data;
+    const existing = this.files.get(normalized);
+    if (existing !== undefined) {
+      if (!existing.equals(incoming)) {
+        throw new Error(
+          `Pack path "${normalized}" already exists with different content (${label}). ` +
+            `Use a unique identifier or a namespaced short name to avoid a colliding filename.`
+        );
+      }
+      // Identical content → idempotent; nothing to do.
+      return;
+    }
+    this.addFile(normalized, incoming);
+  }
+
+  /**
    * Adds many files at once. Accepts either `PackFile` objects, `[path, data]`
    * tuples, or a mix of both.
    */

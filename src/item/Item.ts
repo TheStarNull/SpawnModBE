@@ -237,8 +237,12 @@ const USE_ANIMATIONS: readonly UseAnimation[] = [
   'spyglass',
 ];
 
-/** The identifier pattern: `namespace:name`. */
-const IDENTIFIER_PATTERN = /^[a-z0-9_]+:[a-z0-9_]+$/i;
+/**
+ * The identifier pattern: `namespace:name`. Minecraft Bedrock identifiers are
+ * lowercase, so uppercase is rejected here to avoid generating files that pass
+ * validation yet silently fail to load in-game.
+ */
+const IDENTIFIER_PATTERN = /^[a-z0-9_]+:[a-z0-9_]+$/;
 
 /** Derives a valid item short name from a namespace-qualified identifier. */
 export function itemShortName(identifier: string): string {
@@ -271,7 +275,7 @@ export class Item {
     }
     if (!IDENTIFIER_PATTERN.test(config.identifier)) {
       throw new Error(
-        `Item identifier must match "namespace:name", got: ${config.identifier}`
+        `Item identifier must be lowercase "namespace:name", got: ${config.identifier}`
       );
     }
     const category = config.category ?? 'items';
