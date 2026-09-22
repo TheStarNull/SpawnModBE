@@ -1494,6 +1494,11 @@ function testParticle() {
   const path = bp.addParticle(particle);
   assert.equal(path, 'particles/ruby_spark.json');
   assert.ok(bp.hasFile('particles/ruby_spark.json'));
+  const mod = new ModMain({ name: 'PFactory', sapi: 'scripts/main.js', uuid: { seed: 'p-factory' } });
+  const fp = mod.particle({ identifier: 'mymod:gem_spark' });
+  assert.ok(fp instanceof Particle && mod.behavior!.hasFile('particles/gem_spark.json'), 'particle factory wires');
+  mod.define({ particles: [new Particle({ identifier: 'mymod:xyz' })] });
+  assert.ok(mod.behavior!.hasFile('particles/xyz.json'), 'define({ particles }) routes');
   console.log('[ok] Particle generates and lands on the behavior pack');
 }
 
@@ -1528,6 +1533,12 @@ function testFeatureAndFeatureRule() {
   assert.equal(bp.addFeatureRule(rule), 'feature_rules/ruby_ore.json');
   assert.ok(bp.hasFile('features/ruby_ore.json'));
   assert.ok(bp.hasFile('feature_rules/ruby_ore.json'));
+  const mod = new ModMain({ name: 'FFactory', sapi: 'scripts/main.js', uuid: { seed: 'f-factory' } });
+  const ff = mod.feature({ identifier: 'mymod:tree', type: 'minecraft:tree_feature', body: {} });
+  assert.ok(ff instanceof Feature && mod.behavior!.hasFile('features/tree.json'), 'feature factory wires');
+  const fr = mod.featureRule({ identifier: 'mymod:tree', placesFeature: 'mymod:tree' });
+  assert.ok(fr instanceof FeatureRule && mod.behavior!.hasFile('feature_rules/tree.json'), 'featureRule factory wires');
+  mod.define({ features: [ff], featureRules: [fr] });
   console.log('[ok] Feature/FeatureRule generate and land on the behavior pack');
 }
 
@@ -1551,6 +1562,11 @@ function testBiome() {
   const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp3' } });
   assert.equal(bp.addBiome(biome), 'biomes/ruby_plains.json');
   assert.ok(bp.hasFile('biomes/ruby_plains.json'));
+  const mod = new ModMain({ name: 'BFactory', sapi: 'scripts/main.js', uuid: { seed: 'b-factory' } });
+  const fb = mod.biome({ identifier: 'mymod:plains' });
+  assert.ok(fb instanceof Biome && mod.behavior!.hasFile('biomes/plains.json'), 'biome factory wires');
+  mod.define({ biomes: [new Biome({ identifier: 'mymod:desert' })] });
+  assert.ok(mod.behavior!.hasFile('biomes/desert.json'), 'define({ biomes }) routes');
   console.log('[ok] Biome generates and lands on the behavior pack');
 }
 
@@ -1572,6 +1588,11 @@ function testFog() {
   const rp = new Resource({ name: 'FX RP', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-rp' } });
   assert.equal(rp.addFog(fog), 'fogs/ruby_fog.json');
   assert.ok(rp.hasFile('fogs/ruby_fog.json'));
+  const mod = new ModMain({ name: 'FogFactory', sapi: 'scripts/main.js', uuid: { seed: 'fog-factory' } });
+  const ff = mod.fog({ identifier: 'mymod:night_fog' });
+  assert.ok(ff instanceof Fog && mod.resource.hasFile('fogs/night_fog.json'), 'fog factory wires');
+  mod.define({ rp: [new Fog({ identifier: 'mymod:day_fog' })] });
+  assert.ok(mod.resource.hasFile('fogs/day_fog.json'), 'define({ rp: [fog] }) routes');
   console.log('[ok] Fog generates and lands on the resource pack');
 }
 

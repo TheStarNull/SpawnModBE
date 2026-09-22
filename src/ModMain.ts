@@ -28,18 +28,26 @@
 import { resolve } from 'node:path';
 
 import { Behavior } from './Behavior.js';
+import { Biome } from './biome/index.js';
 import { Block } from './block/index.js';
 import { EntityBP, EntityRP, RenderController, SpawnRules } from './entity/index.js';
+import { Feature, FeatureRule } from './feature/index.js';
+import { Fog } from './fog/index.js';
 import { Item } from './item/index.js';
+import { Particle } from './particle/index.js';
 import { BrewingContainer, BrewingMix, Furnace, Shaped, Shapeless } from './recipe/index.js';
 import { LootTable } from './loot/index.js';
 import { packFolderName } from './pack.js';
 import { Resource } from './Resource.js';
 import { TradeTable } from './trade/index.js';
 import { UiFile } from './ui/index.js';
+import type { BiomeConfig } from './biome/index.js';
 import type { BlockConfig } from './block/index.js';
 import type { EntityBPConfig, EntityRPConfig, RenderControllerConfig, SpawnRulesConfig } from './entity/index.js';
+import type { FeatureConfig, FeatureRuleConfig } from './feature/index.js';
+import type { FogConfig } from './fog/index.js';
 import type { ItemConfig } from './item/index.js';
+import type { ParticleConfig } from './particle/index.js';
 import type { BrewingContainerConfig, BrewingMixConfig, FurnaceConfig, ShapedConfig, ShapelessConfig } from './recipe/index.js';
 import type { LootTableConfig } from './loot/index.js';
 import type { TradeTableConfig } from './trade/index.js';
@@ -324,6 +332,10 @@ export class ModMain {
       ...(spec.loot ?? []),
       ...(spec.trades ?? []),
       ...(spec.ui ?? []),
+      ...(spec.particles ?? []),
+      ...(spec.features ?? []),
+      ...(spec.featureRules ?? []),
+      ...(spec.biomes ?? []),
       ...(spec.rp ?? []),
     ]);
     return this;
@@ -357,6 +369,16 @@ export class ModMain {
   trade(config: TradeTableConfig, path: string): TradeTable { return this.addAndReturn(new TradeTable(config), path); }
   /** Constructs + wires a {@link UiFile}. */
   ui(config: UiFileConfig): UiFile { return this.addAndReturn(new UiFile(config)); }
+  /** Constructs + wires a {@link Particle}. */
+  particle(config: ParticleConfig): Particle { return this.addAndReturn(new Particle(config)); }
+  /** Constructs + wires a {@link Feature}. */
+  feature(config: FeatureConfig): Feature { return this.addAndReturn(new Feature(config)); }
+  /** Constructs + wires a {@link FeatureRule}. */
+  featureRule(config: FeatureRuleConfig): FeatureRule { return this.addAndReturn(new FeatureRule(config)); }
+  /** Constructs + wires a {@link Biome}. */
+  biome(config: BiomeConfig): Biome { return this.addAndReturn(new Biome(config)); }
+  /** Constructs + wires a {@link Fog}. */
+  fog(config: FogConfig): Fog { return this.addAndReturn(new Fog(config)); }
 
   private addAndReturn<T extends object>(instance: T, path?: string): T {
     if (path !== undefined) this.add(instance as Addable, path);
