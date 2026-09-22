@@ -531,6 +531,28 @@ export class Resource extends PackBase {
   }
 
   /**
+   * Writes the item display name into `texts/<locale>.lang` as
+   * `item.<identifier>.name`. Repeated calls overwrite the same key (no duplicates).
+   *
+   * @param item The item to name.
+   * @param name The display name (defaults to `item.config.name`).
+   * @param options.locale The language file locale (default `'en_US'`).
+   * @returns The lang file path that was written.
+   */
+  addItemName(item: Item, name?: string, options?: { locale?: string }): string {
+    const locale = options?.locale ?? 'en_US';
+    const langPath = `texts/${locale}.lang`;
+    const key = `item.${item.identifier}.name`;
+    const value = name ?? item.config.name;
+    const existing = this.getFile(langPath)?.toString('utf8') ?? '';
+    const lines = existing.length > 0 ? existing.split('\n') : [];
+    const filtered = lines.filter((l) => !l.startsWith(`${key}=`));
+    filtered.push(`${key}=${value}`);
+    this.addFile(langPath, filtered.join('\n') + '\n');
+    return langPath;
+  }
+
+  /**
    * Adds a flipbook (animated) block texture entry to
    * `textures/flipbook_textures.json`. The `atlasTile` must reference a shortname
    * registered in `terrain_texture.json` (e.g. via `addBlockTexture`).

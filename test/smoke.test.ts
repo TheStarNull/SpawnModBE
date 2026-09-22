@@ -1446,6 +1446,20 @@ function testPositionalConstructor() {
   console.log('[ok] Positional constructor works');
 }
 
+function testAddItemName() {
+  const rp = new Resource({ name: 'RP', author: 'a', version: [1, 0, 0] });
+  const ruby = new Item({ identifier: 'route:ruby', name: 'Ruby' });
+  const path = rp.addItemName(ruby);
+  assert.equal(path, 'texts/en_US.lang');
+  let lang = rp.getFile('texts/en_US.lang')!.toString('utf8');
+  assert.ok(lang.includes('item.route:ruby.name=Ruby'), 'writes item.<id>.name');
+  rp.addItemName(ruby, 'Renamed');
+  lang = rp.getFile('texts/en_US.lang')!.toString('utf8');
+  assert.ok(lang.includes('item.route:ruby.name=Renamed'), 'overwrites same key');
+  assert.equal(lang.match(/item\.route:ruby\.name=/g)!.length, 1, 'no duplicate keys');
+  console.log('[ok] Resource.addItemName merges item display names');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1578,4 +1592,5 @@ await testCliInitSapiDefaultsName();
 await testCliInitRefusesNonEmptyDir();
 await testCliInitForceOverwrites();
 await testCliVersionAndHelp();
+testAddItemName();
 console.log('\nAll SpawnModBE smoke tests passed.');
