@@ -64,8 +64,11 @@ import {
   killedByPlayer,
   setCount,
   Particle,
+  Feature,
+  FeatureRule,
   emitterRateInstant,
   emitterRateSteady,
+  oreFeature,
   particleLifetime,
   tint,
 } from '../src/index.js';
@@ -1489,6 +1492,40 @@ function testParticle() {
   console.log('[ok] Particle generates and lands on the behavior pack');
 }
 
+function testFeatureAndFeatureRule() {
+  const ore = oreFeature({
+    identifier: 'mymod:ruby_ore',
+    count: 8,
+    replaceRules: [{ placesBlock: 'mymod:ruby_ore', mayReplace: ['minecraft:stone'] }],
+  });
+  assert.ok(ore instanceof Feature, 'oreFeature returns a Feature');
+  const fj = ore.buildJson() as AnyObj;
+  assert.equal((fj['minecraft:ore_feature'] as AnyObj).description.identifier, 'mymod:ruby_ore');
+  const rr = (fj['minecraft:ore_feature'] as AnyObj).replace_rules as AnyObj[];
+  assert.equal(rr[0].places_block, 'mymod:ruby_ore');
+
+  const rule = new FeatureRule({
+    identifier: 'mymod:ruby_ore',
+    placesFeature: 'mymod:ruby_ore',
+    biomeFilter: { test: 'has_biome_tag', operator: '==', value: 'overworld' },
+    distribution: { iterations: 5 },
+  });
+  assert.equal(rule.fileName, 'ruby_ore.json');
+  const rj = rule.buildJson() as AnyObj;
+  const cond = (rj['minecraft:feature_rules'] as AnyObj).condition as AnyObj;
+  assert.equal(cond.iterations, 5);
+  assert.equal(cond.scatter_chance, 100, 'distribution default scatter_chance');
+  assert.equal(cond.coordinate_eval_order ?? cond.coordinateEvalOrder, 'xyz');
+  assert.ok(cond['minecraft:biome_filter'], 'biome filter carried');
+
+  const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp2' } });
+  assert.equal(bp.addFeature(ore), 'features/ruby_ore.json');
+  assert.equal(bp.addFeatureRule(rule), 'feature_rules/ruby_ore.json');
+  assert.ok(bp.hasFile('features/ruby_ore.json'));
+  assert.ok(bp.hasFile('feature_rules/ruby_ore.json'));
+  console.log('[ok] Feature/FeatureRule generate and land on the behavior pack');
+}
+
 function testRoutingItems() {
   const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
   const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
@@ -1789,6 +1826,7 @@ await testCliInitRefusesNonEmptyDir();
 await testCliInitForceOverwrites();
 await testCliVersionAndHelp();
 testParticle();
+testFeatureAndFeatureRule();
 testAddItemName();
 testRoutingItems();
 testRoutingEntities();

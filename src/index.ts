@@ -38,6 +38,10 @@ export {
   billboard,
   tint,
 } from './particle/index.js';
+export { Feature, oreFeature, singleBlockFeature } from './feature/index.js';
+export type { FeatureConfig, ResolvedFeatureConfig } from './feature/index.js';
+export { FeatureRule } from './feature/index.js';
+export type { FeatureRuleConfig, FeatureRuleDistribution, ResolvedFeatureRuleConfig } from './feature/index.js';
 export type {
   BlockBox,
   BlockBoxVec,

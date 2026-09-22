@@ -29,6 +29,7 @@ import { itemShortName, type Item } from './item/Item.js';
 import { type LootTable } from './loot/LootTable.js';
 import { type TradeTable } from './trade/TradeTable.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
+import { type Feature, type FeatureRule } from './feature/index.js';
 import { type Particle } from './particle/index.js';
 import { type Recipe } from './recipe/Recipe.js';
 import type {
@@ -232,6 +233,30 @@ export class Behavior extends PackBase {
   addParticle(particle: Particle): string {
     const path = `particles/${particle.fileName}`;
     this.addFile(path, JSON.stringify(particle.buildJson(), null, 2));
+    return path;
+  }
+
+  /**
+   * Adds a feature to the behavior pack.
+   * Writes the feature JSON to `features/<shortName>.json`.
+   * @param feature The feature definition.
+   * @returns The pack-relative path that was written.
+   */
+  addFeature(feature: Feature): string {
+    const path = `features/${feature.fileName}`;
+    this.addFile(path, JSON.stringify(feature.buildJson(), null, 2));
+    return path;
+  }
+
+  /**
+   * Adds a feature rule to the behavior pack.
+   * Writes the rule JSON to `feature_rules/<shortName>.json`.
+   * @param rule The feature-rule definition.
+   * @returns The pack-relative path that was written.
+   */
+  addFeatureRule(rule: FeatureRule): string {
+    const path = `feature_rules/${rule.fileName}`;
+    this.addFile(path, JSON.stringify(rule.buildJson(), null, 2));
     return path;
   }
 
