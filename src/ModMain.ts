@@ -44,7 +44,7 @@ import type {
 import { UuidPool } from './uuid.js';
 import { createZip } from './zip.js';
 import { sanitizeFileName } from './util.js';
-import { addEntries, pairLootPaths, type Addable } from './routing.js';
+import { addEntries, pairLootPaths, type Addable, type DefineSpec } from './routing.js';
 
 /** Fills in every optional field so downstream logic can rely on concrete values. */
 function resolveConfig(config: ModMainConfig): ResolvedModMainConfig {
@@ -294,6 +294,24 @@ export class ModMain {
    */
   add(...entries: Array<Addable | string>): this {
     addEntries(this, pairLootPaths(entries));
+    return this;
+  }
+
+  /**
+   * Declarative batch wiring: routes grouped generator arrays to the correct packs.
+   * Returns `this` for chaining (e.g. `.define({...}).writeTo('out')`).
+   */
+  define(spec: DefineSpec): this {
+    addEntries(this, [
+      ...(spec.items ?? []),
+      ...(spec.blocks ?? []),
+      ...(spec.entities ?? []),
+      ...(spec.recipes ?? []),
+      ...(spec.loot ?? []),
+      ...(spec.trades ?? []),
+      ...(spec.ui ?? []),
+      ...(spec.rp ?? []),
+    ]);
     return this;
   }
 }

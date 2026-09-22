@@ -1581,6 +1581,37 @@ function testRoutingErrors() {
   console.log('[ok] add() errors are explicit (no-sapi / unsupported / missing path)');
 }
 
+function testDefine() {
+  const mod = new ModMain({ name: 'Define', sapi: 'scripts/main.js', uuid: { seed: 'define-all' } });
+  const ruby = new Item({ identifier: 'route:ruby', name: 'Ruby', texturePath: 'textures/items/ruby' });
+  const lamp = new Block({ identifier: 'route:lamp', components: { 'minecraft:material_instances': { '*': { texture: 'route_lamp' } } } });
+  const goblin = new EntityBP({ identifier: 'route:goblin', components: { 'minecraft:type_family': { family: ['goblin'] } } });
+  const sword = new Shaped({ identifier: 'route:sword', tags: ['crafting_table'], pattern: ['X'], key: { X: 'minecraft:diamond' }, result: { item: 'route:sword' } });
+  const table = new LootTable({ pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }] });
+  const trades = new TradeTable({ tiers: [{ trades: [{ wants: [{ item: 'minecraft:emerald' }], gives: [{ item: 'route:sword' }] }] }] });
+  const screen = new UiFile({ fileName: 'settings.json', namespace: 'settings', elements: [{ name: 'lbl', type: 'label', text: 'hi' }] });
+  const ret = mod.define({
+    items: [ruby],
+    blocks: [lamp],
+    entities: [goblin],
+    recipes: [[sword, 'weapons']],
+    loot: [[table, 'loot_tables/cave']],
+    trades: [[trades, 'trading/trader']],
+    ui: [screen],
+  });
+  assert.equal(ret, mod, 'define returns this');
+  assert.ok(mod.behavior!.hasFile('items/ruby.json'));
+  assert.ok(mod.behavior!.hasFile('blocks/lamp.json'));
+  assert.ok(mod.behavior!.hasFile('entities/goblin.json'));
+  assert.ok(mod.behavior!.hasFile('recipes/weapons/sword.json'));
+  assert.ok(mod.behavior!.hasFile('loot_tables/cave.json'));
+  assert.ok(mod.behavior!.hasFile('trading/trader.json'));
+  assert.ok(mod.resource.hasFile('ui/settings.json'));
+  assert.ok(mod.resource.hasFile('texts/en_US.lang'));
+  mod.define({});
+  console.log('[ok] define() wires a full declarative batch');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1719,4 +1750,5 @@ testRoutingEntities();
 testRoutingRpModules();
 testRoutingPathsAndErrors();
 testRoutingErrors();
+testDefine();
 console.log('\nAll SpawnModBE smoke tests passed.');
