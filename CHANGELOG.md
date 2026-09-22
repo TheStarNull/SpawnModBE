@@ -5,6 +5,18 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.4.0] - 2026-09-22
+
+### Added
+
+- 粒子生成器（`Particle`：BP `particles/*.json` + 发射器/寿命/形状/外观助手）
+- 地物与地物规则（`Feature` / `FeatureRule`：BP `features/*.json` / `feature_rules/*.json` + `oreFeature` / `singleBlockFeature`）
+- 生物群系生成器（`Biome`：BP `biomes/*.json` + `climate` / `surfaceParameters` / `biomeTags`）
+- 雾效生成器（`Fog`：RP `fogs/*.json`，含 air/water/lava 距离层与体积雾）
+- 统一接线扩展：`mod.add(实例)` / `mod.define({ particles, features, featureRules, biomes })` / `mod.particle` 等 5 个工厂
+- 公共助手 `shortName()`（去命名空间短名，与 `itemShortName` 语义一致）
+- 冒烟测试 65 → 69
+
 ## [0.3.0] - 2026-09-22
 
 ### Added

@@ -32,6 +32,10 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🧑‍🌾 **村庄交易表**：`TradeTable`（tiers → groups/trades → wants/gives，recipe choice/quantity/multiplier/functions）
 - 🧱 **方块生成器**：`Block`（BP 块定义 + states/traits/permutations + RP terrain_texture + tile 本地化）
 - 🎞️ **方块纹理动画**：`FlipbookTextures`（`flipbook_textures.json` 动画参数，岩浆/水式动画）
+- ✨ **粒子生成器**：`Particle`（BP `particles/*.json` + 发射速率 / 寿命 / 形状 / 外观助手）
+- 🌳 **地物生成器**：`Feature` / `FeatureRule`（BP `features/*.json` / `feature_rules/*.json` + `oreFeature` / `singleBlockFeature`）
+- 🏞️ **生物群系生成器**：`Biome`（BP `biomes/*.json` + `climate` / `surfaceParameters` / `biomeTags`）
+- 🌫️ **雾效生成器**：`Fog`（RP `fogs/*.json`，含 air/water/lava 距离层与体积雾）
 - 🔗 **链式 set 方法**：`Item`/`Block`/`EntityBP` 支持 `.setXxx()` 返回自身，一行串多个配置（含 `setLoot` 关联战利品表）
 - 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含完整面向对象控件（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`/`UiToggle`/`UiDropdown`/`UiSlider`/`UiEditBox`/`UiScrollView`/`UiFactory`/`UiCustom` 等）自动注册 `_ui_defs.json`
 - 🧩 **CLI 脚手架**：`npx spawnmodbe init` 一键生成可编译的 TypeScript 模组工程（零运行时依赖，含 SAPI 入口 / 纯资源包两种模式）
@@ -1121,6 +1125,11 @@ mod.define({
   entities: [goblinBp, goblinRp, goblinRc, goblinSpawn],
   recipes: [[sword, 'weapons']],
   loot: [[table, 'loot_tables/cave']],
+  particles: [spark],
+  features: [ore],
+  featureRules: [oreRule],
+  biomes: [plain],
+  rp: [fog],
 });                                    // 声明式批量，返回 this
 ```
 
@@ -1128,6 +1137,93 @@ mod.define({
 `mod.shaped({...})` / `mod.loot(config, path)` / `mod.ui({...})` 等，创建即接线。
 LootTable/TradeTable 需显式路径（`[table, path]` 或 `mod.add(table, path)`）。
 纯资源包模组添加 BP 侧模块会得到明确报错提示，不会静默漏接。
+
+---
+
+## ✨ 粒子 / 地物 / 群系 / 雾
+
+世界生成与表现层面的四个生成器（0.4.0）：粒子（BP）、地物与地物规则（BP）、
+生物群系（BP）、雾效（RP）。全部支持 `mod.add(实例)`、`mod.define({...})` 分组与
+工厂方法三种接线方式。
+
+### 粒子 `Particle`
+
+```ts
+import { Particle, emitterRateInstant, emitterRateSteady, particleLifetime, tint } from 'spawnmodbe';
+
+const spark = new Particle({
+  identifier: 'mymod:ruby_spark',
+  components: {
+    ...emitterRateInstant(20),
+    ...particleLifetime(2),
+    ...tint('#ff0000'),
+  },
+});
+mod.particle({ identifier: 'mymod:gem_spark' });       // 工厂：创建即接线 → particles/gem_spark.json
+mod.add(spark);                                         // → particles/ruby_spark.json
+```
+
+常用助手：`emitterRateInstant` / `emitterRateSteady`（发射速率）、
+`emitterLifetimeOnce` / `emitterLifetimeLooping`（发射器寿命）、
+`emitterShapePoint` / `emitterShapeSphere`（形状）、`particleLifetime`（粒子寿命）、
+`billboard` / `tint`（外观）。
+
+### 地物与规则 `Feature` / `FeatureRule`
+
+```ts
+import { Feature, FeatureRule, oreFeature, singleBlockFeature } from 'spawnmodbe';
+
+const ore = oreFeature({
+  identifier: 'mymod:ruby_ore',
+  count: 8,
+  replaceRules: [{ placesBlock: 'mymod:ruby_ore', mayReplace: ['minecraft:stone'] }],
+});
+const oreRule = new FeatureRule({
+  identifier: 'mymod:ruby_ore',
+  placesFeature: 'mymod:ruby_ore',
+  biomeFilter: { test: 'has_biome_tag', operator: '==', value: 'overworld' },
+  distribution: { iterations: 5 },
+});
+mod.add(ore);       // → features/ruby_ore.json
+mod.add(oreRule);   // → feature_rules/ruby_ore.json
+```
+
+`Feature` 输出任意官方特性类型（`type` + 宽松 `body`）；`oreFeature` 与
+`singleBlockFeature` 是常用捷径。`FeatureRule` 配置用 camelCase
+（`coordinateEvalOrder` / `scatterChance`），输出 JSON 为官方 `coordinate_eval_order`
+/ `scatter_chance`，分布默认值（`scatter_chance: 100` 等）会自动填好。
+
+### 生物群系 `Biome`
+
+```ts
+import { Biome, climate, surfaceParameters, biomeTags } from 'spawnmodbe';
+
+const plain = new Biome({
+  identifier: 'mymod:plain',
+  components: {
+    ...climate(0.5, 0.4, { humidity: 0.3 }),
+    ...surfaceParameters({ top: 'minecraft:grass', mid: 'minecraft:dirt', sea: 'minecraft:water', foundation: 'minecraft:stone' }),
+    ...biomeTags('overworld', 'ruby'),
+  },
+});
+mod.add(plain);   // → biomes/plain.json
+```
+
+### 雾效 `Fog`
+
+```ts
+import { Fog } from 'spawnmodbe';
+
+const rubyFog = new Fog({
+  identifier: 'mymod:ruby_fog',
+  distance: { air: { fog_start: 0, fog_end: 100, fog_color: '#FFAAAA', render_distance_type: 'render' } },
+});
+mod.add(rubyFog);   // → fogs/ruby_fog.json（RP）
+```
+
+`Fog` 落在资源包 `fogs/` 下。要在存档中生效，还需在资源的 `biomes_client.json`
+（本框架默认生成的 `client_biome.json`）里把对应的生物群系指派给这团雾，例如
+`"mymod:plain": { "fog_identifier": "mymod:ruby_fog" }`。
 
 ---
 
@@ -1244,13 +1340,17 @@ SpawnModBE/
 │   ├── block/          # 方块（Block BP 定义）
 │   ├── entity/         # 实体体系（EntityBP/EntityRP/RenderController/SpawnRules）
 │   ├── ui/             # JSON UI（UiFile/UiDefs/UiGlobalVariables + OO 元素：UiLabel/UiPanel/...）
+│   ├── particle/       # 粒子（Particle + 发射器/寿命/形状/外观助手）
+│   ├── feature/        # 地物与规则（Feature / FeatureRule + oreFeature / singleBlockFeature）
+│   ├── biome/          # 生物群系（Biome + climate / surfaceParameters / biomeTags）
+│   ├── fog/            # 雾效（Fog：RP fogs/*.json，air/water/lava 距离层 + 体积雾）
 │   └── rp/             # RP 模块（LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures）
 ├── example/
 │   ├── index.ts             # 带 SAPI + 目录复制 + 打包的示例
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（65 项）
+│   ├── smoke.test.ts   # 冒烟测试（69 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json
@@ -1277,6 +1377,7 @@ SpawnModBE/
 - [x] JSON UI 生成器（`UiFile` / `UiDefs` / `UiGlobalVariables`）
 - [x] CLI 工具（`npx spawnmodbe init`）
 - [x] 统一接线 API（`mod.add` / `mod.define` / 工厂方法）
+- [x] 粒子 / 地物 / 群系 / 雾生成器（`Particle` / `Feature` / `Biome` / `Fog`）
 
 ---
 
