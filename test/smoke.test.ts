@@ -66,10 +66,14 @@ import {
   Particle,
   Feature,
   FeatureRule,
+  Biome,
   emitterRateInstant,
   emitterRateSteady,
+  climate,
   oreFeature,
   particleLifetime,
+  surfaceParameters,
+  biomeTags,
   tint,
 } from '../src/index.js';
 import { runCli } from '../src/cli.js';
@@ -1526,6 +1530,29 @@ function testFeatureAndFeatureRule() {
   console.log('[ok] Feature/FeatureRule generate and land on the behavior pack');
 }
 
+function testBiome() {
+  const biome = new Biome({
+    identifier: 'mymod:ruby_plains',
+    components: {
+      ...climate(0.5, 0.4, { humidity: 0.3 }),
+      ...surfaceParameters({ top: 'minecraft:grass', mid: 'minecraft:dirt', sea: 'minecraft:water', foundation: 'minecraft:stone' }),
+      ...biomeTags('overworld', 'ruby'),
+    },
+  });
+  assert.equal(biome.fileName, 'ruby_plains.json');
+  const bj = biome.buildJson() as AnyObj;
+  const comps = (bj['minecraft:biome'] as AnyObj).components as AnyObj;
+  assert.equal(comps['minecraft:climate'].temperature, 0.5);
+  assert.equal(comps['minecraft:surface_parameters'].top_material, 'minecraft:grass');
+  assert.deepStrictEqual(comps['minecraft:tags'].tags, ['overworld', 'ruby']);
+  assert.ok((biomeTags('a') as AnyObj)['minecraft:tags'], 'biomeTags helper shape');
+
+  const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp3' } });
+  assert.equal(bp.addBiome(biome), 'biomes/ruby_plains.json');
+  assert.ok(bp.hasFile('biomes/ruby_plains.json'));
+  console.log('[ok] Biome generates and lands on the behavior pack');
+}
+
 function testRoutingItems() {
   const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
   const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
@@ -1827,6 +1854,7 @@ await testCliInitForceOverwrites();
 await testCliVersionAndHelp();
 testParticle();
 testFeatureAndFeatureRule();
+testBiome();
 testAddItemName();
 testRoutingItems();
 testRoutingEntities();

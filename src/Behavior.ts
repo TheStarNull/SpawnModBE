@@ -29,6 +29,7 @@ import { itemShortName, type Item } from './item/Item.js';
 import { type LootTable } from './loot/LootTable.js';
 import { type TradeTable } from './trade/TradeTable.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
+import { type Biome } from './biome/index.js';
 import { type Feature, type FeatureRule } from './feature/index.js';
 import { type Particle } from './particle/index.js';
 import { type Recipe } from './recipe/Recipe.js';
@@ -257,6 +258,18 @@ export class Behavior extends PackBase {
   addFeatureRule(rule: FeatureRule): string {
     const path = `feature_rules/${rule.fileName}`;
     this.addFile(path, JSON.stringify(rule.buildJson(), null, 2));
+    return path;
+  }
+
+  /**
+   * Adds a biome to the behavior pack.
+   * Writes the biome JSON to `biomes/<shortName>.json`.
+   * @param biome The biome definition.
+   * @returns The pack-relative path that was written.
+   */
+  addBiome(biome: Biome): string {
+    const path = `biomes/${biome.fileName}`;
+    this.addFile(path, JSON.stringify(biome.buildJson(), null, 2));
     return path;
   }
 
