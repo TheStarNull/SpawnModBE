@@ -9,7 +9,7 @@
 
 ### Added
 
-- 粒子生成器（`Particle`：BP `particles/*.json` + 发射器/寿命/形状/外观助手）
+- 粒子生成器（`Particle`：RP `particles/*.json` + 发射器/寿命/形状/外观助手）
 - 地物与地物规则（`Feature` / `FeatureRule`：BP `features/*.json` / `feature_rules/*.json` + `oreFeature` / `singleBlockFeature`）
 - 生物群系生成器（`Biome`：BP `biomes/*.json` + `climate` / `surfaceParameters` / `biomeTags`）
 - 雾效生成器（`Fog`：RP `fogs/*.json`，含 air/water/lava 距离层与体积雾）

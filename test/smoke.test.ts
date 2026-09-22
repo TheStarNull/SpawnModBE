@@ -1490,16 +1490,18 @@ function testParticle() {
   assert.ok((emitterRateSteady(5, 100) as AnyObj)['minecraft:emitter_rate_steady']);
   assert.ok((tint('#ff0000') as AnyObj)['minecraft:particle_appearance_tinting']);
 
-  const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp' } });
-  const path = bp.addParticle(particle);
+  // Particles are client-side definitions: the official pack structure places
+  // them in RP/particles (they reference RP textures), not in the behavior pack.
+  const rp = new Resource({ name: 'FX RP', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-rp' } });
+  const path = rp.addParticle(particle);
   assert.equal(path, 'particles/ruby_spark.json');
-  assert.ok(bp.hasFile('particles/ruby_spark.json'));
+  assert.ok(rp.hasFile('particles/ruby_spark.json'));
   const mod = new ModMain({ name: 'PFactory', sapi: 'scripts/main.js', uuid: { seed: 'p-factory' } });
   const fp = mod.particle({ identifier: 'mymod:gem_spark' });
-  assert.ok(fp instanceof Particle && mod.behavior!.hasFile('particles/gem_spark.json'), 'particle factory wires');
+  assert.ok(fp instanceof Particle && mod.resource.hasFile('particles/gem_spark.json'), 'particle factory wires');
   mod.define({ particles: [new Particle({ identifier: 'mymod:xyz' })] });
-  assert.ok(mod.behavior!.hasFile('particles/xyz.json'), 'define({ particles }) routes');
-  console.log('[ok] Particle generates and lands on the behavior pack');
+  assert.ok(mod.resource.hasFile('particles/xyz.json'), 'define({ particles }) routes');
+  console.log('[ok] Particle generates and lands on the resource pack');
 }
 
 function testFeatureAndFeatureRule() {
@@ -1522,11 +1524,20 @@ function testFeatureAndFeatureRule() {
   });
   assert.equal(rule.fileName, 'ruby_ore.json');
   const rj = rule.buildJson() as AnyObj;
-  const cond = (rj['minecraft:feature_rules'] as AnyObj).condition as AnyObj;
-  assert.equal(cond.iterations, 5);
-  assert.equal(cond.scatter_chance, 100, 'distribution default scatter_chance');
-  assert.equal(cond.coordinate_eval_order ?? cond.coordinateEvalOrder, 'xyz');
-  assert.ok(cond['minecraft:biome_filter'], 'biome filter carried');
+  // Official feature_rules schema: description.places_feature, a top-level
+  // "conditions" (with placement_pass + biome_filter) and a top-level
+  // "distribution" (iterations / scatter_chance / coordinate_eval_order / x/y/z).
+  const frDesc = (rj['minecraft:feature_rules'] as AnyObj).description as AnyObj;
+  assert.equal(frDesc.identifier, 'mymod:ruby_ore');
+  assert.equal(frDesc.places_feature, 'mymod:ruby_ore', 'places_feature carried');
+  const conds = (rj['minecraft:feature_rules'] as AnyObj).conditions as AnyObj;
+  assert.equal(conds.placement_pass, 'surface_pass', 'placement pass inside conditions');
+  assert.ok(conds['minecraft:biome_filter'], 'biome filter carried in conditions');
+  const dist = (rj['minecraft:feature_rules'] as AnyObj).distribution as AnyObj;
+  assert.equal(dist.iterations, 5, 'iterations inside distribution');
+  assert.equal(dist.scatter_chance, 100, 'distribution default scatter_chance');
+  assert.equal(dist.coordinate_eval_order, 'xyz', 'coordinate_eval_order inside distribution');
+  assert.ok('x' in dist && 'y' in dist && 'z' in dist, 'x/y/z in distribution');
 
   const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp2' } });
   assert.equal(bp.addFeature(ore), 'features/ruby_ore.json');
@@ -1713,8 +1724,10 @@ function testRoutingErrors() {
   assert.throws(() => mod.add({ whatever: 1 } as unknown as AddableType), /Unsupported entry/);
   const pathless = new LootTable({ pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:diamond', weight: 1 }] }] });
   assert.throws(() => mod.add(pathless), /explicit path/);
+  // Particles are resource-pack modules, so a resource-pack-only mod accepts them.
   const rpParticle = new ModMain({ name: 'RP Particle', uuid: { seed: 'rp-particle' } });
-  assert.throws(() => rpParticle.add(new Particle({ identifier: 'x:y' })), /no behavior pack/);
+  rpParticle.add(new Particle({ identifier: 'x:y' }));
+  assert.ok(rpParticle.resource.hasFile('particles/y.json'), 'RP-only mod accepts particles');
   console.log('[ok] add() errors are explicit (no-sapi / unsupported / missing path)');
 }
 

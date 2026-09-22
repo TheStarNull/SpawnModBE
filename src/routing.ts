@@ -200,7 +200,7 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
   }
   if (entry instanceof FlipbookTextures) { mod.resource.addFlipbookTexture(entry); return; }
 
-  if (entry instanceof Particle) { requireBehavior(mod, 'particle'); mod.behavior!.addParticle(entry); return; }
+  if (entry instanceof Particle) { mod.resource.addParticle(entry); return; }
   if (entry instanceof Feature) { requireBehavior(mod, 'feature'); mod.behavior!.addFeature(entry); return; }
   if (entry instanceof FeatureRule) { requireBehavior(mod, 'feature rule'); mod.behavior!.addFeatureRule(entry); return; }
   if (entry instanceof Biome) { requireBehavior(mod, 'biome'); mod.behavior!.addBiome(entry); return; }

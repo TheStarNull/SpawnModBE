@@ -35,6 +35,7 @@ import { type ItemTextureAtlas } from './rp/ItemTextureAtlas.js';
 import { type LangFile } from './rp/LangFile.js';
 import { type SoundBatch } from './rp/SoundBatch.js';
 import { type Fog } from './fog/index.js';
+import { type Particle } from './particle/index.js';
 import { type UiDefs } from './ui/UiDefs.js';
 import { type UiFile } from './ui/UiFile.js';
 import { type UiGlobalVariables } from './ui/UiGlobalVariables.js';
@@ -592,6 +593,22 @@ export class Resource extends PackBase {
   addFog(fog: Fog): string {
     const path = `fogs/${fog.fileName}`;
     this.addNewFile(path, JSON.stringify(fog.buildJson(), null, 2), `Fog ${fog.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds a particle effect to the resource pack.
+   * Writes the particle JSON to `particles/<shortName>.json`.
+   *
+   * Particles are client-side definitions that reference RP textures, so they
+   * belong in the resource pack (`RP/particles`), not the behavior pack.
+   *
+   * @param particle The particle definition.
+   * @returns The pack-relative path that was written.
+   */
+  addParticle(particle: Particle): string {
+    const path = `particles/${particle.fileName}`;
+    this.addNewFile(path, JSON.stringify(particle.buildJson(), null, 2), `Particle ${particle.identifier}`);
     return path;
   }
 

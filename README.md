@@ -32,7 +32,7 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🧑‍🌾 **村庄交易表**：`TradeTable`（tiers → groups/trades → wants/gives，recipe choice/quantity/multiplier/functions）
 - 🧱 **方块生成器**：`Block`（BP 块定义 + states/traits/permutations + RP terrain_texture + tile 本地化）
 - 🎞️ **方块纹理动画**：`FlipbookTextures`（`flipbook_textures.json` 动画参数，岩浆/水式动画）
-- ✨ **粒子生成器**：`Particle`（BP `particles/*.json` + 发射速率 / 寿命 / 形状 / 外观助手）
+- ✨ **粒子生成器**：`Particle`（RP `particles/*.json` + 发射速率 / 寿命 / 形状 / 外观助手）
 - 🌳 **地物生成器**：`Feature` / `FeatureRule`（BP `features/*.json` / `feature_rules/*.json` + `oreFeature` / `singleBlockFeature`）
 - 🏞️ **生物群系生成器**：`Biome`（BP `biomes/*.json` + `climate` / `surfaceParameters` / `biomeTags`）
 - 🌫️ **雾效生成器**：`Fog`（RP `fogs/*.json`，含 air/water/lava 距离层与体积雾）
@@ -1142,7 +1142,7 @@ LootTable/TradeTable 需显式路径（`[table, path]` 或 `mod.add(table, path)
 
 ## ✨ 粒子 / 地物 / 群系 / 雾
 
-世界生成与表现层面的四个生成器（0.4.0）：粒子（BP）、地物与地物规则（BP）、
+世界生成与表现层面的四个生成器（0.4.0）：粒子（RP）、地物与地物规则（BP）、
 生物群系（BP）、雾效（RP）。全部支持 `mod.add(实例)`、`mod.define({...})` 分组与
 工厂方法三种接线方式。
 

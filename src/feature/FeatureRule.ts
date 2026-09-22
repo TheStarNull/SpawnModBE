@@ -65,23 +65,27 @@ export class FeatureRule {
 
   buildJson(): Record<string, unknown> {
     const d = this.config.distribution;
-    const condition: Record<string, unknown> = {
-      iterations: d.iterations,
-      coordinate_eval_order: d.coordinateEvalOrder,
-      x: d.x,
-      y: d.y,
-      z: d.z,
-      scatter_chance: d.scatterChance,
-    };
-    if (this.config.biomeFilter !== undefined) {
-      condition['minecraft:biome_filter'] = this.config.biomeFilter;
-    }
     return {
       format_version: this.config.formatVersion,
       'minecraft:feature_rules': {
-        description: { identifier: this.identifier },
-        placement_pass: this.config.placementPass,
-        condition,
+        description: {
+          identifier: this.identifier,
+          places_feature: this.config.placesFeature,
+        },
+        conditions: {
+          placement_pass: this.config.placementPass,
+          ...(this.config.biomeFilter !== undefined
+            ? { 'minecraft:biome_filter': this.config.biomeFilter }
+            : {}),
+        },
+        distribution: {
+          iterations: d.iterations,
+          coordinate_eval_order: d.coordinateEvalOrder,
+          x: d.x,
+          y: d.y,
+          z: d.z,
+          scatter_chance: d.scatterChance,
+        },
       },
     };
   }
