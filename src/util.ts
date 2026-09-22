@@ -44,3 +44,8 @@ export function normalizeZipPath(p: string): string {
   }
   return out;
 }
+/** Strips the `namespace:` prefix from an identifier, returning the short name. */
+export function shortName(identifier: string): string {
+  const idx = identifier.indexOf(':');
+  return idx >= 0 ? identifier.slice(idx + 1) : identifier;
+}

@@ -63,6 +63,11 @@ import {
   crc32,
   killedByPlayer,
   setCount,
+  Particle,
+  emitterRateInstant,
+  emitterRateSteady,
+  particleLifetime,
+  tint,
 } from '../src/index.js';
 import { runCli } from '../src/cli.js';
 import type { Addable as AddableType } from '../src/routing.js';
@@ -1461,6 +1466,29 @@ function testAddItemName() {
   console.log('[ok] Resource.addItemName merges item display names');
 }
 
+function testParticle() {
+  const particle = new Particle({
+    identifier: 'mymod:ruby_spark',
+    components: { ...emitterRateInstant(20), ...particleLifetime(2) },
+  });
+  assert.equal(particle.fileName, 'ruby_spark.json', 'shortName strips namespace');
+  const json = particle.buildJson() as AnyObj;
+  const eff = json.particle_effect as AnyObj;
+  assert.equal(eff.description.identifier, 'mymod:ruby_spark');
+  assert.equal(eff.description.basic_render_parameters.texture, 'textures/particle/particles');
+  assert.equal(eff.description.basic_render_parameters.material, 'particles_alpha');
+  assert.equal((eff.components as AnyObj)['minecraft:emitter_rate_instant'].num_particles, 20);
+  assert.deepStrictEqual(emitterRateInstant(20), { 'minecraft:emitter_rate_instant': { num_particles: 20 } });
+  assert.ok((emitterRateSteady(5, 100) as AnyObj)['minecraft:emitter_rate_steady']);
+  assert.ok((tint('#ff0000') as AnyObj)['minecraft:particle_appearance_tinting']);
+
+  const bp = new Behavior({ name: 'FX', author: 'a', version: [1, 0, 0], uuid: { seed: 'fx-bp' } });
+  const path = bp.addParticle(particle);
+  assert.equal(path, 'particles/ruby_spark.json');
+  assert.ok(bp.hasFile('particles/ruby_spark.json'));
+  console.log('[ok] Particle generates and lands on the behavior pack');
+}
+
 function testRoutingItems() {
   const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
   const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
@@ -1760,6 +1788,7 @@ await testCliInitSapiDefaultsName();
 await testCliInitRefusesNonEmptyDir();
 await testCliInitForceOverwrites();
 await testCliVersionAndHelp();
+testParticle();
 testAddItemName();
 testRoutingItems();
 testRoutingEntities();

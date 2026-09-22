@@ -29,6 +29,7 @@ import { itemShortName, type Item } from './item/Item.js';
 import { type LootTable } from './loot/LootTable.js';
 import { type TradeTable } from './trade/TradeTable.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
+import { type Particle } from './particle/index.js';
 import { type Recipe } from './recipe/Recipe.js';
 import type {
   BehaviorPackConfig,
@@ -219,6 +220,18 @@ export class Behavior extends PackBase {
   addBlock(block: Block): string {
     const path = `blocks/${block.fileName}`;
     this.addFile(path, JSON.stringify(block.buildJson(), null, 2));
+    return path;
+  }
+
+  /**
+   * Adds a particle effect to the behavior pack.
+   * Writes the particle JSON to `particles/<shortName>.json`.
+   * @param particle The particle definition.
+   * @returns The pack-relative path that was written.
+   */
+  addParticle(particle: Particle): string {
+    const path = `particles/${particle.fileName}`;
+    this.addFile(path, JSON.stringify(particle.buildJson(), null, 2));
     return path;
   }
 

@@ -25,6 +25,19 @@ export {
 export {
   Block,
 } from './block/index.js';
+export { Particle } from './particle/index.js';
+export type { ParticleConfig, ResolvedParticleConfig, BillboardOptions } from './particle/index.js';
+export {
+  emitterRateInstant,
+  emitterRateSteady,
+  emitterLifetimeOnce,
+  emitterLifetimeLooping,
+  emitterShapePoint,
+  emitterShapeSphere,
+  particleLifetime,
+  billboard,
+  tint,
+} from './particle/index.js';
 export type {
   BlockBox,
   BlockBoxVec,
