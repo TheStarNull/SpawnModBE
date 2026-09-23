@@ -1812,6 +1812,43 @@ function testIdentifierUppercaseRejected() {
   console.log('[ok] uppercase item identifiers are rejected');
 }
 
+function testRPDependencyIsPackReference() {
+  // The RP must depend on the BP as a *pack* reference: a UUID + version tuple.
+  // It must NOT carry `module_name` (that is the runtime-module-dependency form,
+  // reserved for script deps like '@minecraft/server').
+  const mod = new ModMain({ name: 'DepShape', sapi: 'scripts/main.js', uuid: { seed: 'dep-shape' } });
+  const deps = mod.buildResourcePackManifest().dependencies ?? [];
+  assert.equal(deps.length, 1, 'RP depends on the BP');
+  assert.equal(deps[0].uuid, mod.behaviorPackUuid, 'dependency references the BP header uuid');
+  assert.ok(Array.isArray(deps[0].version), 'pack dependency version is a SemVer tuple');
+  assert.equal(deps[0].module_name, undefined, 'pack dependency must not carry a module_name');
+  console.log('[ok] RP manifest dependency is a clean pack reference (uuid + version)');
+}
+
+function testItemWithoutNameUsesShortName() {
+  // An item with no `name` must not emit a literal "undefined" in the lang file;
+  // it should fall back to the item short name.
+  const mod = new ModMain({ name: 'NoName', sapi: 'scripts/main.js', uuid: { seed: 'noname' } });
+  mod.item({ identifier: 'mymod:nugget', texturePath: 'textures/items/nugget' });
+  const lang = mod.resource.getFile('texts/en_US.lang')?.toString('utf8') ?? '';
+  assert.ok(lang.includes('item.mymod:nugget.name=nugget'), 'lang falls back to short name');
+  assert.equal(lang.includes('undefined'), false, 'no "undefined" in the lang file');
+  console.log('[ok] item without name falls back to short name in the lang file');
+}
+
+function testItemWithoutTexturePathGetsPlaceholderIcon() {
+  // An item with no `texturePath` still needs its icon resolvable: the icon
+  // shortname must be registered in the atlas with a placeholder texture.
+  const mod = new ModMain({ name: 'NoTex', sapi: 'scripts/main.js', uuid: { seed: 'notex' } });
+  mod.item({ identifier: 'mymod:gem', name: 'Gem' }); // no texturePath
+  const atlas = mod.resource.getFile('textures/item_texture.json');
+  assert.ok(atlas, 'item_texture.json is generated');
+  const parsed = JSON.parse(atlas!.toString('utf8')) as { texture_data: Record<string, { textures: string }> };
+  assert.ok(parsed.texture_data['gem'], 'icon shortname registered in the atlas');
+  assert.equal(parsed.texture_data['gem'].textures, 'textures/items/gem', 'placeholder texture path registered');
+  console.log('[ok] item without texturePath gets a resolvable placeholder icon');
+}
+
 async function pathExists(p: string): Promise<boolean> {
   try {
     await accessFs(p);
@@ -1959,4 +1996,7 @@ testFactories();
 testNamespaceCollision();
 testBlockTextureKeyMatchesReference();
 testIdentifierUppercaseRejected();
+testRPDependencyIsPackReference();
+testItemWithoutNameUsesShortName();
+testItemWithoutTexturePathGetsPlaceholderIcon();
 console.log('\nAll SpawnModBE smoke tests passed.');

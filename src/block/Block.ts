@@ -223,9 +223,9 @@ export class Block {
   /**
    * Links the block's drop loot table via the `minecraft:loot` component.
    *
-   * Accepts either a behavior-pack-relative path string (no `.json` — the
-   * `minecraft:loot` value uses the `loot_tables/...` path) or a `LootTable`
-   * instance combined with the path to write it to.
+   * Accepts a behavior-pack-relative path string. If it does not already end in
+   * `.json`, the extension is appended so the `minecraft:loot` value resolves to
+   * the same file that `Behavior.addLootTable` writes.
    *
    * @param lootTablePath The BP-relative path (e.g. `'loot_tables/blocks/custom_block'`).
    * @returns `this` for chaining.

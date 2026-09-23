@@ -145,24 +145,36 @@ export class Resource extends PackBase {
   addItemTexture(item: Item, options?: { placeholderColor?: [number, number, number] }): string {
     const mapping = item.textureMapping;
     if (!mapping) {
-      // No texture path → still register the icon name so the atlas key exists.
+      // No texture path. For a bare shortname icon, register a placeholder so
+      // the atlas key exists and the item renders visibly. A namespaced icon
+      // (e.g. 'minecraft:diamond') is expected to resolve from another pack.
+      const icon = item.iconTexture;
+      if (!icon.includes(':')) {
+        this.registerItemTexture(icon, `textures/items/${icon}`, options?.placeholderColor);
+      }
       return item.iconTexture;
     }
+    this.registerItemTexture(mapping.textureName, mapping.texturePath, options?.placeholderColor);
+    return mapping.textureName;
+  }
 
+  /**
+   * Registers a single item icon in `textures/item_texture.json` and writes a
+   * solid-color placeholder PNG if the texture is not already present in the pack.
+   */
+  private registerItemTexture(
+    textureName: string,
+    texturePath: string,
+    placeholderColor?: [number, number, number]
+  ): void {
     const atlas = this.readItemTextureAtlas();
-    atlas.texture_data[mapping.textureName] = { textures: mapping.texturePath };
+    atlas.texture_data[textureName] = { textures: texturePath };
     this.writeItemTextureAtlas(atlas);
 
-    // Write a placeholder PNG unless the caller provided a real texture.
-    const texturePngPath = `${mapping.texturePath}.png`;
+    const texturePngPath = `${texturePath}.png`;
     if (!this.hasFile(texturePngPath)) {
-      this.addFile(
-        texturePngPath,
-        buildIconPng(16, options?.placeholderColor ?? [180, 60, 255])
-      );
+      this.addFile(texturePngPath, buildIconPng(16, placeholderColor ?? [180, 60, 255]));
     }
-
-    return mapping.textureName;
   }
 
   /** Adds several item textures at once. */
@@ -550,7 +562,7 @@ export class Resource extends PackBase {
     const locale = options?.locale ?? 'en_US';
     const langPath = `texts/${locale}.lang`;
     const key = `item.${item.identifier}.name`;
-    const value = name ?? item.config.name;
+    const value = name ?? item.displayName;
     const existing = this.getFile(langPath)?.toString('utf8') ?? '';
     const lines = existing.length > 0 ? existing.split('\n') : [];
     const filtered = lines.filter((l) => !l.startsWith(`${key}=`));

@@ -206,7 +206,7 @@ export class ModMain {
   buildResourcePackManifest(): ResourcePackManifest {
     return this.resource.buildManifest({
       dependencies: this.behavior
-        ? [{ uuid: this.behavior.uuid, version: this.config.version, module_name: this.config.name }]
+        ? [{ uuid: this.behavior.uuid, version: this.config.version }]
         : undefined,
     });
   }

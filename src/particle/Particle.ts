@@ -1,7 +1,7 @@
 /**
- * The `Particle` class — a behavior-pack particle effect generator.
+ * The `Particle` class — a resource-pack particle effect generator.
  *
- * Particles live at BP/particles/<shortName>.json and are wrapped in a
+ * Particles live at RP/particles/<shortName>.json and are wrapped in a
  * `particle_effect` node. This class keeps the high-frequency render fields
  * strongly typed and lets the rest flow through a loose `components` object.
  */
