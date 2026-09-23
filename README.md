@@ -9,6 +9,8 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 
 > 项目名 **SpawnModBE** —— *Spawn a Mod for Bedrock Edition*。
 
+📖 **API 参考**：[docs/api.md](docs/api.md)（全部公开导出符号的签名、参数与默认值）。
+
 ---
 
 ## ✨ 特性
