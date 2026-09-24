@@ -366,24 +366,28 @@ rp.addSound(
 
 多次调用会**累积**写入同一个 `sound_definitions.json`，不会互相覆盖。
 
-### 唱片音效 `addRecordSound`
+### 唱片 `RecordDisc`
 
-唱片（`RecordDisc`）可自带音频，`addRecordSound` 会把声音事件与音频绑定，
-并自动采用原版唱片的配置（stream 流式加载、0.5 音量、64 格传播距离）。
+> ⚠️ `minecraft:record.sound_event` 绑定的是 **vanilla 音效事件枚举**
+> （如 `record.cat` / `record.13` …），自定义音效名会被游戏直接拒绝，
+> 当前版本不支持自定义唱片音乐（见 [Mojang 官方回复](https://wiki.bedrock.dev/meta/blocks-items-qna#custom-music-discs)）。
 
 ```ts
 const disc = new RecordDisc({
   identifier: 'mymod:my_disc',
   name: 'Mystery Disc',
-  soundEvent: 'record.mystery',
-  soundPath: 'sounds/music/records/mystery', // 默认由此推导
+  soundEvent: 'record.cat',   // 必须是 vanilla 音效事件
   texturePath: 'textures/items/record_mystery',
 });
 
-mod.resource.addRecordSound(disc, oggBuffer);  // 注册声音 + 写入 ogg
-mod.resource.addItemTexture(disc);             // 注册贴图
-mod.behavior?.addItem(disc);                   // 注册物品定义
+mod.resource.addItemTexture(disc);  // 注册贴图
+mod.behavior?.addItem(disc);        // 注册物品定义
 ```
+
+如确实需要自定义唱片音频，`Resource.addRecordSound` 会以
+stream 流式加载、0.5 音量、64 格传播距离的配置把音频写入
+`sounds/sound_definitions.json`（依赖 `soundPath`），此时请自行权衡
+覆盖同名 vanilla 音效的影响。
 
 **依赖类型**：`AddSoundOptions`（stream / volume / pitch / maxDistance / loadOnLowMemory）、
 `SoundDefinition`、`SoundEventDefinition`。
@@ -641,7 +645,7 @@ lang.setItemName('mymod:ruby', 'Ruby');
 lang.setItemName('mymod:dagger', 'Obsidian Dagger');
 lang.setEntityName('mymod:goblin', 'Goblin');
 lang.setSpawnEggName('mymod:goblin', 'Goblin Spawn Egg');
-lang.setRecordDesc('record.mystery', 'Mystery Music');
+lang.setRecordDesc('record.cat', 'Mystery Music');
 mod.resource.addLang(lang);  // → texts/en_US.lang
 ```
 

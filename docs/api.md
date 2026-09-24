@@ -319,7 +319,7 @@ constructor(config: ItemConfig);
 - **`Throwable`**（投掷/射手）：`projectileEntity`（必填）、`minimumCriticalPower`、`doSwingAnimation`、`minDrawDuration`、`maxDrawDuration`、`launchPowerScale`、`maxLaunchPower`、`scalePowerByDrawDuration`、`ammunition`、`chargeOnDraw`、`useDuration`。
 - **`BlockPlacer`**（放方块物品）：`block`（必填）、`replaceBlockItem`、`alignedPlacement`、`canPlaceOn`。
 - **`EntityPlacer`**（放置实体/生成蛋）：`entity`（必填）、`canPlaceOn`、`canDispenseOn`。
-- **`RecordDisc`**（唱片）：`comparatorSignal`、`duration`（默认 5）、`soundEvent`（必填）、`soundPath`。由 `Resource.addRecordSound` 自动注册音效。
+- **`RecordDisc`**（唱片）：`comparatorSignal`、`duration`（默认 5）、`soundEvent`（必填）、`soundPath`。`soundEvent` 必须是 vanilla 音效事件（如 `record.cat` / `record.13`）——`minecraft:record.sound_event` 绑定 `LevelSoundEvent` 枚举，自定义音效名会被游戏拒绝。如通过 `Resource.addRecordSound` 注册自定义音频，需同时提供 `soundPath`，且注意覆盖同名 vanilla 音效的影响。
 
 ### `itemShortName(identifier)`
 

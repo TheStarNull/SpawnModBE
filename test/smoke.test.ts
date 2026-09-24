@@ -476,7 +476,7 @@ function testSoundSystem() {
     name: 'Mystery Disc',
     comparatorSignal: 3,
     duration: 12.5,
-    soundEvent: 'record.mystery',
+    soundEvent: 'record.13',
     soundPath: 'sounds/music/records/mystery',
     texturePath: 'textures/items/record_mystery',
   });
@@ -485,7 +485,7 @@ function testSoundSystem() {
   const defs3 = JSON.parse(
     rp2.getFile('sounds/sound_definitions.json')!.toString()
   ) as { sound_definitions: Record<string, AnyObj> };
-  const rec = defs3.sound_definitions['record.mystery'] as AnyObj;
+  const rec = defs3.sound_definitions['record.13'] as AnyObj;
   assert.ok(rec, 'record event registered');
   assert.equal(rec.max_distance, 64);
   assert.equal(rec.sounds[0].stream, true, 'records stream');
@@ -754,12 +754,12 @@ function testLangFile() {
   lang.setItemName('mymod:dagger', 'Obsidian Dagger');
   lang.setEntityName('mymod:goblin', 'Goblin');
   lang.setSpawnEggName('mymod:goblin', 'Goblin Spawn Egg');
-  lang.setRecordDesc('record.mystery', 'Mystery Music');
+  lang.setRecordDesc('record.cat', 'Mystery Music');
   const text = lang.toString();
   assert.ok(text.includes('item.mymod:ruby.name=Ruby'));
   assert.ok(text.includes('entity.mymod:goblin.name=Goblin'));
   assert.ok(text.includes('item.spawn_egg.entity.goblin.name=Goblin Spawn Egg'));
-  assert.ok(text.includes('item.record_mystery.desc=Mystery Music'));
+  assert.ok(text.includes('item.record_cat.desc=Mystery Music'));
   assert.equal(lang.filePath, 'texts/en_US.lang');
   console.log('[ok] LangFile generates .lang output');
 }
@@ -1624,7 +1624,7 @@ function testRoutingItems() {
     name: 'Route Disc',
     comparatorSignal: 1,
     duration: 3,
-    soundEvent: 'record.route',
+    soundEvent: 'record.cat',
     soundPath: 'sounds/music/records/route',
   });
   const ret = mod.add([ruby, chainsaw, disc]);
@@ -1637,7 +1637,7 @@ function testRoutingItems() {
   assert.ok(mod.resource.hasFile('models/entity/chainsaw.geo.json'));
   assert.ok(mod.resource.hasFile('animations/chainsaw.animation.json'));
   const defs = JSON.parse(mod.resource.getFile('sounds/sound_definitions.json')!.toString('utf8')) as AnyObj;
-  assert.ok(defs.sound_definitions['record.route'], 'record disc sound auto-registered');
+  assert.ok(defs.sound_definitions['record.cat'], 'record disc sound auto-registered');
   const lang = mod.resource.getFile('texts/en_US.lang')!.toString('utf8');
   assert.ok(lang.includes('item.route:ruby.name=Route Ruby'));
   mod.add(ruby);
