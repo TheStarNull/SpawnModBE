@@ -412,8 +412,6 @@ export class Item {
         description: {
           identifier: this.identifier,
           menu_category: { category: this.config.category },
-          is_experimental: false,
-          register_to_creative_menu: true,
         },
         components: this.components(),
       },

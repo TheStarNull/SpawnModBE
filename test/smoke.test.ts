@@ -1619,7 +1619,14 @@ function testRoutingItems() {
       animations: { spin: { bone: 'blade', rotation: ['0', 'q.life_time * 360', '0'] } },
     },
   });
-  const disc = new RecordDisc({ identifier: 'route:disc', name: 'Route Disc', comparatorSignal: 1, duration: 3, soundEvent: 'record.route' });
+  const disc = new RecordDisc({
+    identifier: 'route:disc',
+    name: 'Route Disc',
+    comparatorSignal: 1,
+    duration: 3,
+    soundEvent: 'record.route',
+    soundPath: 'sounds/music/records/route',
+  });
   const ret = mod.add([ruby, chainsaw, disc]);
   assert.equal(ret, mod, 'add returns this for chaining');
   assert.ok(mod.behavior!.hasFile('items/ruby.json'));

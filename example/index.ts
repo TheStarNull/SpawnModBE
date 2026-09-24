@@ -76,8 +76,9 @@ const disc = new RecordDisc({
   name: 'Spawn Disc',
   comparatorSignal: 3,
   duration: 12.5,
-  soundEvent: 'record.spawn',
-  soundPath: 'sounds/music/records/spawn',
+  // `minecraft:record.sound_event` is validated against the vanilla
+  // `LevelSoundEvent` enum, so only the built-in `record.*` names are accepted.
+  soundEvent: 'record.cat',
   texturePath: 'textures/items/record_spawn',
 });
 
@@ -90,7 +91,7 @@ mod.define({
       tags: ['crafting_table'],
       pattern: [' O ', ' S '],
       key: { O: 'minecraft:obsidian', S: 'minecraft:stick' },
-      result: { item: 'spawnmod:obsidian_dagger' },
+      result: { item: 'spawnmod:dagger' },
     }),
   ],
   loot: [[
@@ -100,18 +101,6 @@ mod.define({
     'loot_tables/demo',
   ]],
 });
-
-// Register the disc's music audio: sound definition above + the OGG file itself.
-mod.resource.addRecordSound(disc, Buffer.from('OggS-demo-record-audio', 'utf8'));
-console.log('\n=== Custom disc ===');
-console.log(
-  'record.music sound_definition registered:',
-  mod.resource.hasFile('sounds/sound_definitions.json')
-);
-console.log(
-  'record audio file present:',
-  mod.resource.hasFile('sounds/music/records/spawn.ogg')
-);
 
 console.log('\n=== Custom items ===');
 console.log(
@@ -130,6 +119,16 @@ console.log(`Copied ${dirResult.added} files into the resource pack`);
 // 2) Add the SAPI scripts to the BP via its `scripts/` directory.
 if (mod.behavior) {
   await mod.behavior.addDirectory('test/fixtures/scripts', { prefix: 'scripts' });
+}
+
+// Provide the SAPI entry file referenced by `sapi.entry` above.
+if (mod.behavior) {
+  mod.behavior.addFile(
+    'scripts/main.js',
+    'import { world, system } from "@minecraft/server";\n' +
+      'world.sendMessage("Spawn Mod loaded.");\n' +
+      'system.runInterval(() => {}, 20);\n'
+  );
 }
 
 const result = mod.build();

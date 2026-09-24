@@ -143,7 +143,12 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
     mod.behavior!.addItem(entry);
     mod.resource.addItemAssets(entry);
     mod.resource.addItemName(entry);
-    if (entry instanceof RecordDisc) mod.resource.addRecordSound(entry);
+    // Only register the disc's audio when the caller provides a custom
+    // `soundPath`. A vanilla-named `sound_event` (e.g. `record.cat`) is accepted
+    // by the item schema, but registering it would override the vanilla sound.
+    if (entry instanceof RecordDisc && entry.soundPath) {
+      mod.resource.addRecordSound(entry);
+    }
     return;
   }
 
