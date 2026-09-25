@@ -68,6 +68,8 @@ import {
   FeatureRule,
   Biome,
   Fog,
+  BiomesClient,
+  buildBiomeClientEntry,
   emitterRateInstant,
   emitterRateSteady,
   climate,
@@ -76,9 +78,24 @@ import {
   surfaceParameters,
   biomeTags,
   tint,
+  Animation,
+  animationShortName,
+  AnimationController,
+  state,
+  transition,
+  Dialogue,
+  dialogueButton,
+  scene,
+  Structure,
+  StructurePlacement,
+  ScriptApiSource,
+  ScriptFile,
+  fetchScriptsOfType,
+  SERVER_MODULE,
 } from '../src/index.js';
 import { runCli } from '../src/cli.js';
 import type { Addable as AddableType } from '../src/routing.js';
+import type { BiomesClientConfig } from '../src/index.js';
 
 type AnyObj = Record<string, any>;
 
@@ -1607,6 +1624,304 @@ function testFog() {
   console.log('[ok] Fog generates and lands on the resource pack');
 }
 
+function testBiomesClient() {
+  // Full entry: fog + colors + particle + music.
+  const client = new BiomesClient({
+    biomes: {
+      'mymod:ruby_plains': {
+        fogIdentifier: 'mymod:ruby_fog',
+        fogIds: ['minecraft:fog_plains'],
+        waterFogColor: '#2b3a67',
+        waterFogDistance: 48,
+        skyColor: '#66aaff',
+        waterColor: '#2244aa',
+        grassColor: '#88cc66',
+        foliageColor: '#77aa55',
+        fallDustColor: '#ffffff',
+        ambientLight: 0.6,
+        particle: { probability: 0.05, particle: 'mymod:ruby_spark', particleColor: [255, 0, 0] },
+        biomeMusic: 'music.game.creative',
+        biomeMusicVolume: 0.8,
+      },
+      'minecraft:plains': { fogIdentifier: 'minecraft:fog_plains' },
+    },
+  });
+
+  assert.deepEqual(client.biomeIds, ['mymod:ruby_plains', 'minecraft:plains']);
+  assert.equal(client.filePath, 'biomes_client.json');
+
+  const json = client.buildJson() as AnyObj;
+  assert.deepEqual(Object.keys(json), ['biomes']);
+  const entry = json.biomes['mymod:ruby_plains'];
+  assert.equal(entry.fog_identifier, 'mymod:ruby_fog');
+  assert.deepEqual(entry.fog_ids, ['minecraft:fog_plains']);
+  assert.equal(entry.water_fog_color, '#2b3a67');
+  assert.equal(entry.water_fog_distance, 48);
+  assert.equal(entry.sky_color, '#66aaff');
+  assert.equal(entry.water_color, '#2244aa');
+  assert.equal(entry.override_water_color, true, 'override_water_color defaults true when waterColor set');
+  assert.equal(entry.grass_color, '#88cc66');
+  assert.equal(entry.override_grass_color, true);
+  assert.equal(entry.foliage_color, '#77aa55');
+  assert.equal(entry.override_foliage_color, true);
+  assert.equal(entry.fall_dust_color, '#ffffff');
+  assert.equal(entry.ambient_light, 0.6);
+  assert.deepEqual(entry.particle, { probability: 0.05, particle: 'mymod:ruby_spark', particle_color: [255, 0, 0] });
+  assert.equal(entry.biome_music, 'music.game.creative');
+  assert.equal(entry.biome_music_volume, 0.8);
+
+  // Minimal entries are kept snake_case only.
+  const plains = json.biomes['minecraft:plains'];
+  assert.deepEqual(plains, { fog_identifier: 'minecraft:fog_plains' });
+
+  // Override flags can be forced off while a color is present.
+  const forced = buildBiomeClientEntry({ waterColor: '#000000', overrideWaterColor: false });
+  assert.deepEqual(forced, { water_color: '#000000', override_water_color: false });
+
+  // Chaining set() + setFog() (Fog instance accepted).
+  const chained = new BiomesClient({ biomes: {} });
+  const fog = new Fog({ identifier: 'mymod:night_fog' });
+  chained.set('mymod:desert', { skyColor: '#ffaa00' }).setFog('mymod:desert', fog);
+  const cj = chained.buildJson() as AnyObj;
+  assert.equal(cj.biomes['mymod:desert'].fog_identifier, 'mymod:night_fog');
+  assert.equal(cj.biomes['mymod:desert'].sky_color, '#ffaa00');
+  assert.equal(chained.remove('mymod:desert'), true, 'remove returns true');
+  assert.equal(chained.remove('mymod:desert'), false, 'remove returns false for missing');
+  assert.equal(chained.biomeIds.length, 0);
+
+  // Requires a `biomes` object (may be empty and filled via chained set()).
+  assert.throws(() => new BiomesClient({} as BiomesClientConfig), /biomes/);
+  assert.doesNotThrow(() => new BiomesClient({ biomes: {} }));
+  console.log('[ok] BiomesClient builds biomes_client.json entries');
+}
+
+function testBiomesClientIntegration() {
+  const mod = new ModMain({ name: 'BiomesClient Mod', author: 'devx', uuid: { seed: 'biomes-client-mod' } });
+  const fog = new Fog({
+    identifier: 'mymod:ruby_fog',
+    distance: { air: { fog_start: 0, fog_end: 100, fog_color: '#FFAAAA' } },
+  });
+  const client = new BiomesClient({
+    biomes: {
+      'mymod:ruby_plains': { fogIdentifier: fog.identifier, skyColor: '#66aaff' },
+    },
+  });
+
+  // Direct Resource wiring + accepted by RP-only mods (via unified add).
+  mod.resource.addFog(fog);
+  const path = mod.resource.addBiomesClient(client);
+  assert.equal(path, 'biomes_client.json');
+  assert.ok(mod.resource.hasFile('biomes_client.json'));
+  const parsed = JSON.parse(mod.resource.getFile('biomes_client.json')!.toString('utf8')) as AnyObj;
+  assert.equal(parsed.biomes['mymod:ruby_plains'].fog_identifier, 'mymod:ruby_fog');
+
+  // Repeated calls MERGE (multiple biomes coexist).
+  mod.resource.addBiomesClient(new BiomesClient({
+    biomes: { 'mymod:dune': { fogIdentifier: 'minecraft:fog_desert' } },
+  }));
+  const merged = JSON.parse(mod.resource.getFile('biomes_client.json')!.toString('utf8')) as AnyObj;
+  assert.equal(Object.keys(merged.biomes).length, 2, 'both biomes kept after merge');
+  assert.ok(merged.biomes['mymod:ruby_plains'], 'first entry retained');
+  assert.equal(merged.biomes['mymod:dune'].fog_identifier, 'minecraft:fog_desert');
+
+  // Unified routing: mod.add / mod.define / factory.
+  const mod2 = new ModMain({ name: 'BC2', author: 'a', uuid: { seed: 'bc2' } });
+  mod2.add(new BiomesClient({ biomes: { 'mymod:a': { skyColor: '#ff0000' } } }));
+  assert.ok(mod2.resource.hasFile('biomes_client.json'), 'mod.add routes BiomesClient');
+  const client2 = mod2.define({
+    biomesClient: [new BiomesClient({ biomes: { 'mymod:b': { skyColor: '#00ff00' } } })],
+  });
+  assert.equal(client2, mod2, 'define returns this');
+
+  const parsed2 = JSON.parse(mod2.resource.getFile('biomes_client.json')!.toString('utf8')) as AnyObj;
+  assert.ok(parsed2.biomes['mymod:b'], 'define({ biomesClient }) routes');
+  const factory = mod2.biomesClient({ biomes: { 'mymod:c': { fogIdentifier: 'minecraft:fog_plains' } } });
+  assert.ok(factory instanceof BiomesClient, 'factory returns BiomesClient');
+  const parsed3 = JSON.parse(mod2.resource.getFile('biomes_client.json')!.toString('utf8')) as AnyObj;
+  assert.ok(parsed3.biomes['mymod:c'], 'factory wires');
+  console.log('[ok] BiomesClient integrates into RP (accumulate + routing + factory)');
+}
+
+function testAnimation() {
+  const anim = new Animation({
+    identifier: 'animation.mymod.wave',
+    animationLength: 1.0,
+    loop: true,
+    body: { bones: { body: { rotation: ['q.life_time * 30', '0', '0'] } } },
+  });
+  assert.equal(animationShortName('animation.mymod.wave'), 'wave');
+  assert.equal(anim.fileName, 'wave.json');
+  const j = anim.buildJson() as AnyObj;
+  assert.equal(j.format_version, '1.10.0');
+  const a = (j.animations as AnyObj)['animation.mymod.wave'] as AnyObj;
+  assert.equal(a.loop, true);
+  assert.equal(a.animation_length, 1.0);
+  assert.ok((a.bones as AnyObj).body, 'bones body carried through');
+
+  const bp = new Behavior({ name: 'Anim', author: 'a', version: [1, 0, 0], uuid: { seed: 'anim-bp' } });
+  assert.equal(bp.addAnimation(anim), 'animations/wave.json');
+  assert.ok(bp.hasFile('animations/wave.json'));
+  const mod = new ModMain({ name: 'AnimFactory', sapi: 'scripts/main.js', uuid: { seed: 'anim-factory' } });
+  const fa = mod.animation({ identifier: 'animation.mymod.spin', loop: false });
+  assert.ok(fa instanceof Animation && mod.behavior!.hasFile('animations/spin.json'), 'animation factory wires');
+  mod.define({ animations: [new Animation({ identifier: 'animation.mymod.kick' })] });
+  assert.ok(mod.behavior!.hasFile('animations/kick.json'), 'define({ animations }) routes');
+  console.log('[ok] Animation generates and lands on the behavior pack');
+}
+
+function testAnimationController() {
+  const controller = new AnimationController({
+    identifier: 'controller.animation.mymod.walk',
+    initialState: 'idle',
+    states: {
+      ...state('idle', { transitions: transition('walk', 'q.is_moving') }),
+      ...state('walk', { onEntry: ['/say walking'], transitions: transition('idle', '!q.is_moving') }),
+    },
+  });
+  assert.equal(controller.fileName, 'walk.json');
+  const j = controller.buildJson() as AnyObj;
+  const c = (j.animation_controllers as AnyObj)['controller.animation.mymod.walk'] as AnyObj;
+  assert.equal(c.initial_state, 'idle');
+  assert.equal((c.states as AnyObj).idle.transitions.walk, 'q.is_moving');
+  assert.deepStrictEqual((c.states as AnyObj).walk.on_entry, ['/say walking']);
+
+  const bp = new Behavior({ name: 'Ctrl', author: 'a', version: [1, 0, 0], uuid: { seed: 'ctrl-bp' } });
+  assert.equal(bp.addAnimationController(controller), 'animation_controllers/walk.json');
+  assert.ok(bp.hasFile('animation_controllers/walk.json'));
+  const mod = new ModMain({ name: 'CtrlFactory', sapi: 'scripts/main.js', uuid: { seed: 'ctrl-factory' } });
+  const fc = mod.animationController({ identifier: 'controller.animation.mymod.run', states: { ...state('idle') } });
+  assert.ok(fc instanceof AnimationController && mod.behavior!.hasFile('animation_controllers/run.json'), 'animationController factory wires');
+  mod.define({ animationControllers: [new AnimationController({ identifier: 'controller.animation.mymod.fly', states: { ...state('idle') } })] });
+  assert.ok(mod.behavior!.hasFile('animation_controllers/fly.json'), 'define({ animationControllers }) routes');
+  console.log('[ok] AnimationController generates and lands on the behavior pack');
+}
+
+function testDialogue() {
+  const dialogue = new Dialogue({
+    identifier: 'mymod:wanderer',
+    scenes: [
+      scene('mymod:start', {
+        npcName: 'Wanderer',
+        text: 'Hello!',
+        buttons: [dialogueButton('Ask', ['/say hi']), dialogueButton('Bye', ['/say bye'])],
+      }),
+    ],
+  });
+  assert.equal(dialogue.fileName, 'wanderer.json');
+  const j = dialogue.buildJson() as AnyObj;
+  assert.equal(j.format_version, '1.17.0');
+  const npc = j['minecraft:npc_dialogue'] as AnyObj;
+  const scene0 = (npc.scenes as AnyObj[])[0];
+  assert.equal(scene0.scene_tag, 'mymod:start');
+  assert.equal(scene0.npc_name, 'Wanderer');
+  assert.equal(scene0.text, 'Hello!');
+  assert.equal((scene0.buttons as AnyObj[])[0].name, 'Ask');
+
+  const bp = new Behavior({ name: 'Dlg', author: 'a', version: [1, 0, 0], uuid: { seed: 'dlg-bp' } });
+  assert.equal(bp.addDialogue(dialogue), 'dialogue/wanderer.json');
+  assert.ok(bp.hasFile('dialogue/wanderer.json'));
+  const mod = new ModMain({ name: 'DlgFactory', sapi: 'scripts/main.js', uuid: { seed: 'dlg-factory' } });
+  const fd = mod.dialogue({ identifier: 'mymod:guard', scenes: [scene('mymod:guard:start', { text: 'Halt!' })] });
+  assert.ok(fd instanceof Dialogue && mod.behavior!.hasFile('dialogue/guard.json'), 'dialogue factory wires');
+  mod.define({ dialogues: [new Dialogue({ identifier: 'mymod:smith', scenes: [scene('mymod:smith:start')] })] });
+  assert.ok(mod.behavior!.hasFile('dialogue/smith.json'), 'define({ dialogues }) routes');
+  console.log('[ok] Dialogue generates and lands on the behavior pack');
+}
+
+function testStructure() {
+  const structure = new Structure({
+    identifier: 'mymod:castle',
+    size: [2, 2, 2],
+    blocks: { 'minecraft:iron_block': [[1, 1, 1]] },
+  });
+  assert.equal(structure.fileName, 'mymod/castle.mcstructure');
+  const bin = structure.buildBinary();
+  assert.ok(Buffer.isBuffer(bin));
+  assert.equal(bin.readUInt8(0), 0x0a, 'raw little-endian NBT starts with a compound tag');
+  assert.ok(bin.includes(Buffer.from('minecraft:air')), 'palette contains air');
+  assert.ok(bin.includes(Buffer.from('minecraft:iron_block')), 'palette contains iron_block');
+  assert.ok(bin.includes(Buffer.from('origin')), 'structure_world_origin present');
+
+  const bp = new Behavior({ name: 'Struct', author: 'a', version: [1, 0, 0], uuid: { seed: 'struct-bp' } });
+  assert.equal(bp.addStructure(structure), 'structures/mymod/castle.mcstructure');
+  assert.ok(bp.hasFile('structures/mymod/castle.mcstructure'));
+  const mod = new ModMain({ name: 'StructFactory', sapi: 'scripts/main.js', uuid: { seed: 'struct-factory' } });
+  const fs_ = mod.structure({ identifier: 'mymod:hut', size: [1, 1, 1], blocks: { 'minecraft:stone': [[0, 0, 0]] } });
+  assert.ok(fs_ instanceof Structure && mod.behavior!.hasFile('structures/mymod/hut.mcstructure'), 'structure factory wires');
+  mod.define({ structures: [new Structure({ identifier: 'mymod:pyramid', size: [1, 1, 1], blocks: { 'minecraft:sand': [[0, 0, 0]] } })] });
+  assert.ok(mod.behavior!.hasFile('structures/mymod/pyramid.mcstructure'), 'define({ structures }) routes');
+  console.log('[ok] Structure generates a valid .mcstructure binary on the behavior pack');
+}
+
+function testStructurePlacement() {
+  const placement = new StructurePlacement({
+    identifier: 'mymod:castle_placement',
+    structureName: 'mymod:castle',
+    adjustmentRadius: 8,
+    transform: { rotation: 90, mirror: 'z' },
+    structureAnimationInitializationCommands: ['/say placed'],
+    structureAnimationTickCommands: ['/say tick'],
+  });
+  assert.equal(placement.fileName, 'castle_placement.json');
+  const j = placement.buildJson() as AnyObj;
+  const f = j['minecraft:structure_template_feature'] as AnyObj;
+  assert.equal(f.description.identifier, 'mymod:castle_placement');
+  assert.equal(f.structure_name, 'mymod:castle');
+  assert.equal(f.adjustment_radius, 8);
+  assert.equal(f.rotation, 90);
+  assert.equal(f.mirror, 'z');
+  assert.deepStrictEqual(f.structure_animation_initialization_commands, ['/say placed']);
+  assert.deepStrictEqual(f.structure_animation_tick_commands, ['/say tick']);
+
+  const bp = new Behavior({ name: 'Place', author: 'a', version: [1, 0, 0], uuid: { seed: 'place-bp' } });
+  assert.equal(bp.addStructurePlacement(placement), 'features/castle_placement.json');
+  assert.ok(bp.hasFile('features/castle_placement.json'));
+  const mod = new ModMain({ name: 'PlaceFactory', sapi: 'scripts/main.js', uuid: { seed: 'place-factory' } });
+  const fp = mod.structurePlacement({ identifier: 'mymod:hut_placement', structureName: 'mymod:hut' });
+  assert.ok(fp instanceof StructurePlacement && mod.behavior!.hasFile('features/hut_placement.json'), 'structurePlacement factory wires');
+  mod.define({ structurePlacements: [new StructurePlacement({ identifier: 'mymod:pyramid_placement', structureName: 'mymod:pyramid' })] });
+  assert.ok(mod.behavior!.hasFile('features/pyramid_placement.json'), 'define({ structurePlacements }) routes');
+  console.log('[ok] StructurePlacement generates and lands on the behavior pack');
+}
+
+function testScriptApi() {
+  const src = new ScriptApiSource();
+  const world = src.import('world');
+  const system = src.import('system');
+  assert.equal(world, 'world');
+  assert.equal(system, 'system');
+  const js = src.buildJs(`world.sendMessage('hi')`);
+  assert.ok(js.includes('@ts-ignore'), '@ts-ignore import decorator');
+  assert.ok(js.includes("const { system, world } = require('@minecraft/server');"), 'sorted CommonJS import');
+  assert.ok(js.includes("world.sendMessage('hi')"), 'body carried');
+  assert.equal(src.toJs(''), src.buildJs(''), 'toJs aliases buildJs');
+  assert.equal(SERVER_MODULE, '@minecraft/server');
+
+  const file = new ScriptFile('helpers/main.js', js);
+  assert.equal(file.fileName, 'main.js');
+  assert.equal(file.path, 'helpers/main.js');
+  assert.equal(file.toString(), js);
+  const bp = new Behavior({ name: 'Script', author: 'a', version: [1, 0, 0], uuid: { seed: 'script-bp' } });
+  assert.equal(bp.addScriptFile(file), 'scripts/helpers/main.js');
+  assert.ok(bp.hasFile('scripts/helpers/main.js'));
+  const mod = new ModMain({ name: 'ScriptFactory', sapi: 'scripts/main.js', uuid: { seed: 'script-factory' } });
+  mod.define({ scripts: [new ScriptFile('helpers/other.js', 'export {};')] });
+  assert.ok(mod.behavior!.hasFile('scripts/helpers/other.js'), 'define({ scripts }) routes');
+  console.log('[ok] Script API helpers generate script files on the behavior pack');
+}
+
+async function testFetchScripts() {
+  const dir = await mkdtempFs(joinPath(tmpdirOs(), 'sapi-'));
+  await mkdirFs(joinPath(dir, 'sub'), { recursive: true });
+  await writeFileFs(joinPath(dir, 'a.js'), 'const a = 1;');
+  await writeFileFs(joinPath(dir, 'sub', 'b.js'), 'const b = 2;');
+  await writeFileFs(joinPath(dir, 'skip.txt'), 'not a script');
+  const files = await fetchScriptsOfType(dir, '.js');
+  assert.deepStrictEqual(files.map((f) => f.path).sort(), ['a.js', 'sub/b.js']);
+  await rmFs(dir, { recursive: true, force: true });
+  console.log('[ok] fetchScriptsOfType collects .js files recursively');
+}
+
 function testRoutingItems() {
   const mod = new ModMain({ name: 'Route', sapi: 'scripts/main.js', uuid: { seed: 'route-items' } });
   const ruby = new Item({ identifier: 'route:ruby', name: 'Route Ruby', texturePath: 'textures/items/route_ruby' });
@@ -1992,6 +2307,15 @@ testParticle();
 testFeatureAndFeatureRule();
 testBiome();
 testFog();
+testBiomesClient();
+testBiomesClientIntegration();
+testAnimation();
+testAnimationController();
+testDialogue();
+testStructure();
+testStructurePlacement();
+testScriptApi();
+await testFetchScripts();
 testAddItemName();
 testRoutingItems();
 testRoutingEntities();

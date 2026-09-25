@@ -17,6 +17,7 @@ import { Particle } from './particle/index.js';
 import { Recipe } from './recipe/index.js';
 import {
   Attachable,
+  BiomesClient,
   DynamicItemModel,
   FlipbookTextures,
   FrameSequence,
@@ -26,6 +27,10 @@ import {
 } from './rp/index.js';
 import { TradeTable } from './trade/index.js';
 import { UiDefs, UiFile, UiGlobalVariables } from './ui/index.js';
+import { Animation, AnimationController } from './animation/index.js';
+import { Dialogue } from './dialogue/index.js';
+import { Structure, StructurePlacement } from './structure/index.js';
+import { ScriptFile } from './script/index.js';
 
 /** Anything `mod.add` can wire up: instances, `[instance, path]` tuples, or nested arrays. */
 export type Addable =
@@ -48,11 +53,18 @@ export type Addable =
   | DynamicItemModel
   | FrameSequence
   | FlipbookTextures
+  | BiomesClient
   | Particle
   | Feature
   | FeatureRule
   | Biome
   | Fog
+  | Animation
+  | AnimationController
+  | Dialogue
+  | Structure
+  | StructurePlacement
+  | ScriptFile
   | [Recipe, string?]
   | [LootTable, string]
   | [TradeTable, string]
@@ -71,7 +83,14 @@ export interface DefineSpec {
   features?: Feature[];
   featureRules?: FeatureRule[];
   biomes?: Biome[];
-  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | Fog)[];
+  biomesClient?: BiomesClient[];
+  animations?: Animation[];
+  animationControllers?: AnimationController[];
+  dialogues?: Dialogue[];
+  structures?: Structure[];
+  structurePlacements?: StructurePlacement[];
+  scripts?: ScriptFile[];
+  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | BiomesClient | Fog)[];
 }
 
 /** Turns a display name or identifier into readable capitalized words. */
@@ -92,7 +111,7 @@ function typeLabel(entry: unknown): string {
 
 function unsupportedError(entry: unknown): Error {
   return new Error(
-    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures, Particle, Feature/FeatureRule, Biome, Fog.`
+    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures/BiomesClient, Particle, Feature/FeatureRule, Biome, Fog, Animation, AnimationController, Dialogue, Structure, StructurePlacement, ScriptFile.`
   );
 }
 
@@ -204,12 +223,19 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
     return;
   }
   if (entry instanceof FlipbookTextures) { mod.resource.addFlipbookTexture(entry); return; }
+  if (entry instanceof BiomesClient) { mod.resource.addBiomesClient(entry); return; }
 
   if (entry instanceof Particle) { mod.resource.addParticle(entry); return; }
   if (entry instanceof Feature) { requireBehavior(mod, 'feature'); mod.behavior!.addFeature(entry); return; }
   if (entry instanceof FeatureRule) { requireBehavior(mod, 'feature rule'); mod.behavior!.addFeatureRule(entry); return; }
   if (entry instanceof Biome) { requireBehavior(mod, 'biome'); mod.behavior!.addBiome(entry); return; }
   if (entry instanceof Fog) { mod.resource.addFog(entry); return; }
+  if (entry instanceof Animation) { requireBehavior(mod, 'animation'); mod.behavior!.addAnimation(entry); return; }
+  if (entry instanceof AnimationController) { requireBehavior(mod, 'animation controller'); mod.behavior!.addAnimationController(entry); return; }
+  if (entry instanceof Dialogue) { requireBehavior(mod, 'NPC dialogue'); mod.behavior!.addDialogue(entry); return; }
+  if (entry instanceof Structure) { requireBehavior(mod, 'structure'); mod.behavior!.addStructure(entry); return; }
+  if (entry instanceof StructurePlacement) { requireBehavior(mod, 'structure placement'); mod.behavior!.addStructurePlacement(entry); return; }
+  if (entry instanceof ScriptFile) { requireBehavior(mod, 'script'); mod.behavior!.addScriptFile(entry); return; }
 
   throw unsupportedError(entry);
 }

@@ -26,3 +26,11 @@ export type {
 } from './FrameSequence.js';
 export { FlipbookTextures } from './FlipbookTextures.js';
 export type { FlipbookEntry, FlipbookTexturesConfig } from './FlipbookTextures.js';
+export { BiomesClient, BIOMES_CLIENT_PATH, buildBiomeClientEntry } from './BiomesClient.js';
+export type {
+  BiomeClientEntry,
+  BiomeClientParticle,
+  BiomesClientConfig,
+  ClientColor,
+  ResolvedBiomeClientEntry,
+} from './BiomesClient.js';

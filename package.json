@@ -1,6 +1,6 @@
 {
   "name": "spawnmodbe",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "A TypeScript framework that generates Minecraft Bedrock Edition (MCBE) mods/addons via the Script API (SAPI).",
   "license": "MIT",
   "type": "module",
@@ -40,6 +40,7 @@
     "typescript"
   ],
   "devDependencies": {
+    "@minecraft/server": "^2.10.0",
     "@types/node": "^26.6.2",
     "typescript": "^5.7.3"
   }

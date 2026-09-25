@@ -28,6 +28,7 @@ import { type RenderController } from './entity/RenderController.js';
 import { type RecordDisc } from './item/Record.js';
 import type { Item } from './item/Item.js';
 import { type Attachable } from './rp/Attachable.js';
+import { type BiomesClient } from './rp/BiomesClient.js';
 import { type DynamicItemModel } from './rp/DynamicItemModel.js';
 import { type FlipbookTextures } from './rp/FlipbookTextures.js';
 import { type FrameSequence } from './rp/FrameSequence.js';
@@ -64,6 +65,9 @@ const FLIPBOOK_TEXTURE_PATH = 'textures/flipbook_textures.json';
 
 /** The RP path of the sound definitions file. */
 const SOUND_DEFINITIONS_PATH = 'sounds/sound_definitions.json';
+
+/** The RP root path of the biome client settings file. */
+const BIOMES_CLIENT_PATH = 'biomes_client.json';
 
 export class Resource extends PackBase {
   /** The fully-resolved pack configuration. */
@@ -606,6 +610,47 @@ export class Resource extends PackBase {
     const path = `fogs/${fog.fileName}`;
     this.addNewFile(path, JSON.stringify(fog.buildJson(), null, 2), `Fog ${fog.identifier}`);
     return path;
+  }
+
+  /**
+   * Adds biome client-side visual settings to `biomes_client.json`.
+   *
+   * The file sits at the resource-pack root and maps each biome to its client
+   * visuals (fog, sky / water / grass / foliage colors, ambient particles,
+   * fall-dust color, ambient light, biome music). Repeated calls MERGE their
+   * `biomes` map into the file, so fog assignments for multiple biomes (or
+   * multiple {@link BiomesClient} instances) coexist instead of overwriting one
+   * another.
+   *
+   * @param client The biome client settings.
+   * @returns The pack-relative path that was written (`biomes_client.json`).
+   */
+  addBiomesClient(client: BiomesClient): string {
+    const existing = this.readBiomesClient();
+    const merged: Record<string, unknown> = { ...existing };
+    for (const [id, entry] of Object.entries(client.buildJson()['biomes'] as Record<string, unknown>)) {
+      merged[id] = entry;
+    }
+    this.addFile(BIOMES_CLIENT_PATH, JSON.stringify({ biomes: merged }, null, 2));
+    return BIOMES_CLIENT_PATH;
+  }
+
+  /** Reads the current `biomes_client.json` biome map, or a fresh one. */
+  private readBiomesClient(): Record<string, unknown> {
+    const file = this.getFile(BIOMES_CLIENT_PATH);
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.toString('utf8')) as {
+          biomes?: Record<string, unknown>;
+        };
+        if (parsed && typeof parsed === 'object' && parsed.biomes) {
+          return parsed.biomes;
+        }
+      } catch {
+        // Malformed existing file → start fresh.
+      }
+    }
+    return {};
   }
 
   /**

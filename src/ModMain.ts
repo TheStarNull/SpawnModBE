@@ -35,6 +35,11 @@ import { Feature, FeatureRule } from './feature/index.js';
 import { Fog } from './fog/index.js';
 import { Item } from './item/index.js';
 import { Particle } from './particle/index.js';
+import { Animation, AnimationController } from './animation/index.js';
+import { Dialogue } from './dialogue/index.js';
+import { ScriptApiSource, ScriptFile } from './script/index.js';
+import { Structure, StructurePlacement } from './structure/index.js';
+import { BiomesClient } from './rp/index.js';
 import { BrewingContainer, BrewingMix, Furnace, Shaped, Shapeless } from './recipe/index.js';
 import { LootTable } from './loot/index.js';
 import { packFolderName } from './pack.js';
@@ -48,10 +53,14 @@ import type { FeatureConfig, FeatureRuleConfig } from './feature/index.js';
 import type { FogConfig } from './fog/index.js';
 import type { ItemConfig } from './item/index.js';
 import type { ParticleConfig } from './particle/index.js';
+import type { AnimationConfig, AnimationControllerConfig } from './animation/index.js';
+import type { DialogueConfig } from './dialogue/index.js';
+import type { StructureConfig, StructurePlacementConfig } from './structure/index.js';
 import type { BrewingContainerConfig, BrewingMixConfig, FurnaceConfig, ShapedConfig, ShapelessConfig } from './recipe/index.js';
 import type { LootTableConfig } from './loot/index.js';
 import type { TradeTableConfig } from './trade/index.js';
 import type { UiFileConfig } from './ui/index.js';
+import type { BiomesClientConfig } from './rp/index.js';
 import type {
   BehaviorPackManifest,
   ModBuildResult,
@@ -336,6 +345,13 @@ export class ModMain {
       ...(spec.features ?? []),
       ...(spec.featureRules ?? []),
       ...(spec.biomes ?? []),
+      ...(spec.biomesClient ?? []),
+      ...(spec.animations ?? []),
+      ...(spec.animationControllers ?? []),
+      ...(spec.dialogues ?? []),
+      ...(spec.structures ?? []),
+      ...(spec.structurePlacements ?? []),
+      ...(spec.scripts ?? []),
       ...(spec.rp ?? []),
     ]);
     return this;
@@ -379,6 +395,20 @@ export class ModMain {
   biome(config: BiomeConfig): Biome { return this.addAndReturn(new Biome(config)); }
   /** Constructs + wires a {@link Fog}. */
   fog(config: FogConfig): Fog { return this.addAndReturn(new Fog(config)); }
+  /** Constructs + wires a {@link BiomesClient} (RP `biomes_client.json`). */
+  biomesClient(config: BiomesClientConfig): BiomesClient { return this.addAndReturn(new BiomesClient(config)); }
+  /** Constructs + wires an {@link Animation}. */
+  animation(config: AnimationConfig): Animation { return this.addAndReturn(new Animation(config)); }
+  /** Constructs + wires an {@link AnimationController}. */
+  animationController(config: AnimationControllerConfig): AnimationController { return this.addAndReturn(new AnimationController(config)); }
+  /** Constructs + wires a {@link Dialogue}. */
+  dialogue(config: DialogueConfig): Dialogue { return this.addAndReturn(new Dialogue(config)); }
+  /** Constructs + wires a {@link ScriptApiSource} helper (no file is written until {@link ScriptFile} results are routed). */
+  scriptApi(): ScriptApiSource { return new ScriptApiSource(); }
+  /** Constructs + wires a {@link Structure} (writes the `.mcstructure` binary). */
+  structure(config: StructureConfig): Structure { return this.addAndReturn(new Structure(config)); }
+  /** Constructs + wires a {@link StructurePlacement} feature. */
+  structurePlacement(config: StructurePlacementConfig): StructurePlacement { return this.addAndReturn(new StructurePlacement(config)); }
 
   private addAndReturn<T extends object>(instance: T, path?: string): T {
     if (path !== undefined) this.add(instance as Addable, path);

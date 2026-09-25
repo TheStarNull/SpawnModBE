@@ -38,6 +38,11 @@ SpawnModBE 不是"运行时模组"，而是一个 **代码生成器**：你用 T
 - 🌳 **地物生成器**：`Feature` / `FeatureRule`（BP `features/*.json` / `feature_rules/*.json` + `oreFeature` / `singleBlockFeature`）
 - 🏞️ **生物群系生成器**：`Biome`（BP `biomes/*.json` + `climate` / `surfaceParameters` / `biomeTags`）
 - 🌫️ **雾效生成器**：`Fog`（RP `fogs/*.json`，含 air/water/lava 距离层与体积雾）
+- 🗺️ **生物群系客户端视觉**：`BiomesClient`（RP `biomes_client.json`，把雾/天空/水/草/树叶颜色、环境粒子、落尘与群系音乐指派给自定义群系，补上 `Fog` 的指派缺口）
+- 🎬 **动画生成器**：`Animation` / `AnimationController`（BP `animations/*.json` / `animation_controllers/*.json` + `state()` / `transition()` 助手）
+- 🏗️ **结构与放置**：`Structure`（BP `structures/*.mcstructure`，零依赖小端 NBT 编码）+ `StructurePlacement`（`minecraft:structure_template_feature`，含旋转/镜像与动画命令）
+- 💬 **NPC 对话生成器**：`Dialogue`（BP `dialogue/*.json`，`minecraft:npc_dialogue`，`scene()` / `dialogueButton()` 助手）
+- 📜 **Script API 辅助库**：`ScriptApiSource`（`@minecraft/server` 导入生成）/ `ScriptFile` / `fetchScriptsOfType()`（BP `scripts/*`）
 - 🔗 **链式 set 方法**：`Item`/`Block`/`EntityBP` 支持 `.setXxx()` 返回自身，一行串多个配置（含 `setLoot` 关联战利品表）
 - 🖥️ **JSON UI 生成器**：`UiFile` / `UiDefs` / `UiGlobalVariables`，含完整面向对象控件（`UiLabel`/`UiImage`/`UiButton`/`UiPanel`/`UiStackPanel`/`UiGrid`/`UiScreen`/`UiToggle`/`UiDropdown`/`UiSlider`/`UiEditBox`/`UiScrollView`/`UiFactory`/`UiCustom` 等）自动注册 `_ui_defs.json`
 - 🧩 **CLI 脚手架**：`npx spawnmodbe init` 一键生成可编译的 TypeScript 模组工程（零运行时依赖，含 SAPI 入口 / 纯资源包两种模式）
@@ -1135,6 +1140,7 @@ mod.define({
   features: [ore],
   featureRules: [oreRule],
   biomes: [plain],
+  biomesClient: [biomesClient],
   rp: [fog],
 });                                    // 声明式批量，返回 this
 ```
@@ -1227,15 +1233,69 @@ const rubyFog = new Fog({
 mod.add(rubyFog);   // → fogs/ruby_fog.json（RP）
 ```
 
-`Fog` 落在资源包 `fogs/` 下。要在存档中生效，还需在资源包的
-`biomes_client.json` 里把对应的生物群系指派给这团雾（`"fog_identifier"`），例如：
+`Fog` 落在资源包 `fogs/` 下，只提供雾**定义**。要在存档中真正生效，还需用
+`BiomesClient` 把对应的生物群系指派给这团雾（`fog_identifier`）。
 
-```json
-{ "mymod:plain": { "fog_identifier": "mymod:ruby_fog" } }
+### 生物群系客户端视觉 `BiomesClient` 🗺️
+
+`BiomesClient` 生成资源包根目录的 `biomes_client.json`，把每个生物群系映射到其
+**客户端**视觉：哪团雾生效（`fogIdentifier`）、天空/水/草/树叶颜色、环境粒子、
+落尘颜色、环境光强与群系音乐。它恰好补上了 `Fog` 留下的指派缺口。
+
+```ts
+import { BiomesClient, Fog } from 'spawnmodbe';
+
+const rubyFog = new Fog({
+  identifier: 'mymod:ruby_fog',
+  distance: { air: { fog_start: 0, fog_end: 100, fog_color: '#FFAAAA' } },
+});
+const client = new BiomesClient({
+  biomes: {
+    'mymod:ruby_plains': {
+      fogIdentifier: rubyFog.identifier,     // 复用 Fog → fog_identifier
+      fogIds: ['minecraft:fog_plains'],      // 额外叠加雾
+      waterFogColor: '#2b3a67',
+      waterFogDistance: 48,
+      skyColor: '#66aaff',
+      waterColor: '#2244aa',                 // 自动写 override_water_color: true
+      grassColor: '#88cc66',
+      foliageColor: '#77aa55',
+      fallDustColor: '#ffffff',
+      ambientLight: 0.6,
+      particle: { probability: 0.05, particle: 'mymod:ruby_spark', particleColor: [255, 0, 0] },
+      biomeMusic: 'music.game.creative',
+      biomeMusicVolume: 0.8,
+    },
+  },
+});
+
+mod.add(rubyFog);      // → fogs/ruby_fog.json
+mod.add(client);       // → biomes_client.json（RP-only 模组也可接）
 ```
 
-生成的 `Fog` 只提供 `fogs/*.json` 雾定义；`biomes_client.json` 的指派需在
-资源包内自行维护。
+生成的 `biomes_client.json`：
+
+```json
+{
+  "biomes": {
+    "mymod:ruby_plains": {
+      "fog_identifier": "mymod:ruby_fog",
+      "sky_color": "#66aaff",
+      "water_color": "#2244aa",
+      "override_water_color": true,
+      "particle": { "probability": 0.05, "particle": "mymod:ruby_spark", "particle_color": [255, 0, 0] }
+    }
+  }
+}
+```
+
+**要点**
+- `BiomesClient` 是资源包模块（`RP/biomes_client.json`），`mod.add(实例)` / `mod.define({ biomesClient })` /
+  `mod.biomesClient(config)` 三种接线均可。
+- 多次 `mod.resource.addBiomesClient(...)` 会**合并**（追加/覆盖）同一个文件，不同群系/不同实例相互共存。
+- `BiomeClientEntry` 用 camelCase 输入、输出为游戏要求的 snake_case；设置颜色时默认自动补
+  `override_*_color: true`，可用显式 `overrideWaterColor` 等关掉。
+- `setFog(biomeId, fog)` 接受 `Fog` 实例或雾 id 字符串；`set()` / `remove()` 支持链式增删。
 
 ---
 
@@ -1324,7 +1384,12 @@ npm test
 **村庄交易表（TradeTable tiers/groups/trades + 附魔函数）**、
 **方块（Block BP 定义 + states/traits/permutations + terrain_texture + tile 本地化）**、
 **方块纹理动画（FlipbookTextures）**、
-**JSON UI（UiFile/UiDefs/UiGlobalVariables + 自动 _ui_defs 注册）**。
+**JSON UI（UiFile/UiDefs/UiGlobalVariables + 自动 _ui_defs 注册）**、
+**生物群系客户端视觉（BiomesClient：buildJson / 合并写入 / 统一接线 / 工厂）**、
+**动画与动画控制器（Animation / AnimationController + 状态助手）**、
+**结构与放置（Structure 小端 NBT 二进制 + StructurePlacement feature）**、
+**NPC 对话（Dialogue：场景 / 按钮助手）**、
+**Script API 辅助（ScriptApiSource 导入生成 / ScriptFile / fetchScriptsOfType）**。
 
 ---
 
@@ -1356,13 +1421,17 @@ SpawnModBE/
 │   ├── feature/        # 地物与规则（Feature / FeatureRule + oreFeature / singleBlockFeature）
 │   ├── biome/          # 生物群系（Biome + climate / surfaceParameters / biomeTags）
 │   ├── fog/            # 雾效（Fog：RP fogs/*.json，air/water/lava 距离层 + 体积雾）
-│   └── rp/             # RP 模块（LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures）
+│   ├── animation/      # 动画与动画控制器（Animation + AnimationController + state/transition 助手）
+│   ├── structure/      # 结构（Structure：.mcstructure 小端 NBT 编码 + StructurePlacement feature）
+│   ├── dialogue/       # NPC 对话（Dialogue + scene/dialogueButton 助手）
+│   ├── script/         # Script API 辅助（ScriptApiSource / ScriptFile / fetchScriptsOfType）
+│   └── rp/             # RP 模块（LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures/BiomesClient）
 ├── example/
 │   ├── index.ts             # 带 SAPI + 目录复制 + 打包的示例
 │   ├── example-no-sapi.ts   # 纯资源包示例
 │   └── mod-src/index.ts     # 示例 SAPI 脚本入口
 ├── test/
-│   ├── smoke.test.ts   # 冒烟测试（69 项）
+│   ├── smoke.test.ts   # 冒烟测试（78 项）
 │   └── fixtures/       # 测试用假资源目录
 ├── package.json
 └── tsconfig.json
@@ -1390,6 +1459,11 @@ SpawnModBE/
 - [x] CLI 工具（`npx spawnmodbe init`）
 - [x] 统一接线 API（`mod.add` / `mod.define` / 工厂方法）
 - [x] 粒子 / 地物 / 群系 / 雾生成器（`Particle` / `Feature` / `Biome` / `Fog`）
+- [x] 生物群系客户端视觉（`BiomesClient`：`biomes_client.json`，雾/颜色/粒子/音乐指派）
+- [x] 动画与动画控制器（`Animation` / `AnimationController`：BP `animations` / `animation_controllers`）
+- [x] 结构与放置（`Structure`：`.mcstructure` 小端 NBT 编码 + `StructurePlacement` feature）
+- [x] NPC 对话（`Dialogue`：BP `dialogue` + `scene` / `dialogueButton` 助手）
+- [x] Script API 辅助库（`ScriptApiSource` / `ScriptFile` / `fetchScriptsOfType`）
 
 ---
 

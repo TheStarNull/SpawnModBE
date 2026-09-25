@@ -46,6 +46,18 @@ export { Biome, climate, surfaceParameters, biomeTags } from './biome/index.js';
 export type { BiomeConfig, ResolvedBiomeConfig, ClimateOptions } from './biome/index.js';
 export { Fog } from './fog/index.js';
 export type { FogConfig, FogDistanceLayer, ResolvedFogConfig, ResolvedFogDistanceLayer } from './fog/index.js';
+export { Animation, animationShortName } from './animation/index.js';
+export type { AnimationConfig, ResolvedAnimationConfig } from './animation/index.js';
+export { AnimationController, state, transition } from './animation/index.js';
+export type { AnimationControllerConfig, ResolvedAnimationControllerConfig, StateOptions } from './animation/index.js';
+export { Dialogue, dialogueButton, scene } from './dialogue/index.js';
+export type { DialogueConfig, ResolvedDialogueConfig, SceneOptions } from './dialogue/index.js';
+export { Structure } from './structure/index.js';
+export type { PaletteBlock, ResolvedStructureConfig, StructureConfig } from './structure/index.js';
+export { StructurePlacement } from './structure/index.js';
+export type { ResolvedStructurePlacementConfig, StructurePlacementConfig, StructureTransform } from './structure/index.js';
+export { SERVER_MODULE, ScriptApiSource, ScriptFile, fetchScriptsOfType } from './script/index.js';
+export type { ResolvedScriptApiSourceOptions, ScriptApiSourceOptions } from './script/index.js';
 export type {
   BlockBox,
   BlockBoxVec,
@@ -112,6 +124,9 @@ export {
   DynamicItemModel,
   FrameSequence,
   FlipbookTextures,
+  BiomesClient,
+  BIOMES_CLIENT_PATH,
+  buildBiomeClientEntry,
 } from './rp/index.js';
 export type {
   LangEntry,
@@ -133,6 +148,11 @@ export type {
   ResolvedFrameSequenceConfig,
   FlipbookEntry,
   FlipbookTexturesConfig,
+  BiomeClientEntry,
+  BiomeClientParticle,
+  BiomesClientConfig,
+  ClientColor,
+  ResolvedBiomeClientEntry,
 } from './rp/index.js';
 export {
   UiFile,

@@ -28,6 +28,10 @@ import { type SpawnRules } from './entity/SpawnRules.js';
 import { itemShortName, type Item } from './item/Item.js';
 import { type LootTable } from './loot/LootTable.js';
 import { type TradeTable } from './trade/TradeTable.js';
+import { type Animation, type AnimationController } from './animation/index.js';
+import { type Dialogue } from './dialogue/index.js';
+import { type Structure, type StructurePlacement } from './structure/index.js';
+import { type ScriptFile } from './script/index.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
 import { type Biome } from './biome/index.js';
 import { type Feature, type FeatureRule } from './feature/index.js';
@@ -257,6 +261,80 @@ export class Behavior extends PackBase {
   addBiome(biome: Biome): string {
     const path = `biomes/${biome.fileName}`;
     this.addNewFile(path, JSON.stringify(biome.buildJson(), null, 2), `Biome ${biome.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds an entity animation to the behavior pack.
+   * Writes the animation JSON to `animations/<shortName>.json`.
+   * @param animation The animation definition.
+   * @returns The pack-relative path that was written.
+   */
+  addAnimation(animation: Animation): string {
+    const path = `animations/${animation.fileName}`;
+    this.addNewFile(path, JSON.stringify(animation.buildJson(), null, 2), `Animation ${animation.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds an animation controller to the behavior pack.
+   * Writes the controller JSON to `animation_controllers/<shortName>.json`.
+   * @param controller The animation-controller definition.
+   * @returns The pack-relative path that was written.
+   */
+  addAnimationController(controller: AnimationController): string {
+    const path = `animation_controllers/${controller.fileName}`;
+    this.addNewFile(path, JSON.stringify(controller.buildJson(), null, 2), `AnimationController ${controller.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds an NPC dialogue to the behavior pack.
+   * Writes the dialogue JSON to `dialogue/<shortName>.json`.
+   * @param dialogue The dialogue definition.
+   * @returns The pack-relative path that was written.
+   */
+  addDialogue(dialogue: Dialogue): string {
+    const path = `dialogue/${dialogue.fileName}`;
+    this.addNewFile(path, JSON.stringify(dialogue.buildJson(), null, 2), `Dialogue ${dialogue.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds a structure (`.mcstructure` binary) to the behavior pack.
+   * Writes the structure to `structures/<fileName>`, where the file name encodes
+   * the structure's namespace (`structures/<namespace>/<name>.mcstructure`).
+   * @param structure The structure definition.
+   * @returns The pack-relative path that was written.
+   */
+  addStructure(structure: Structure): string {
+    const path = `structures/${structure.fileName}`;
+    this.addNewFile(path, structure.buildBinary(), `Structure ${structure.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds a structure-placement feature to the behavior pack.
+   * Writes the feature JSON to `features/<shortName>.json`.
+   * @param placement The structure-placement definition.
+   * @returns The pack-relative path that was written.
+   */
+  addStructurePlacement(placement: StructurePlacement): string {
+    const path = `features/${placement.fileName}`;
+    this.addNewFile(path, JSON.stringify(placement.buildJson(), null, 2), `StructurePlacement ${placement.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds a Script API script file to the behavior pack.
+   * Writes the source to `scripts/<file.path>`. The script entry declared in the
+   * manifest should point at one of these files.
+   * @param file The script file.
+   * @returns The pack-relative path that was written.
+   */
+  addScriptFile(file: ScriptFile): string {
+    const path = `scripts/${file.path}`;
+    this.addFile(path, file.source);
     return path;
   }
 

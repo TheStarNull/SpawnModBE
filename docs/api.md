@@ -1,6 +1,6 @@
 # SpawnModBE API 参考
 
-- 版本：0.4.0
+- 版本：1.0.0
 - 定位：面向使用者的**形式化 API 参考**，覆盖所有可从 `spawnmodbe` 包导入的公开符号。
 - 与其它文档的关系：
   - [README.md](../README.md) 提供教程式讲解与完整示例（推荐入门先读）。
@@ -23,10 +23,11 @@
 9. [实体](#9-实体)
 10. [RP 模块](#10-rp-模块)
 11. [粒子 / 地物 / 群系 / 雾](#11-粒子--地物--群系--雾)
-12. [JSON UI](#12-json-ui)
-13. [工具与库函数](#13-工具与库函数)
-14. [配置与共享类型](#14-配置与共享类型)
-15. [CLI](#15-cli)
+12. [动画 / 结构 / 对话 / Script API](#12-动画--结构--对话--script-api)
+13. [JSON UI](#13-json-ui)
+14. [工具与库函数](#14-工具与库函数)
+15. [配置与共享类型](#15-配置与共享类型)
+16. [CLI](#16-cli)
 
 ---
 
@@ -126,6 +127,12 @@ constructor(config: BehaviorPackConfig);
 | `addFeature(feature)` | 写 `features/<短名>.json` |
 | `addFeatureRule(rule)` | 写 `feature_rules/<短名>.json` |
 | `addBiome(biome)` | 写 `biomes/<短名>.json` |
+| `addAnimation(animation)` | 写 `animations/<短名>.json` |
+| `addAnimationController(controller)` | 写 `animation_controllers/<短名>.json` |
+| `addDialogue(dialogue)` | 写 `dialogue/<短名>.json` |
+| `addStructure(structure)` | 写 `structures/<命名空间>/<名称>.mcstructure`（二进制） |
+| `addStructurePlacement(placement)` | 写 `features/<短名>.json`（`minecraft:structure_template_feature`） |
+| `addScriptFile(file)` | 写 `scripts/<file.path>` |
 | `buildManifest(options?)` | 构建 manifest，自动加脚本依赖 |
 | `toString()` | manifest 的 JSON 字符串 |
 
@@ -162,6 +169,7 @@ constructor(config: ResourcePackConfig);
 | `addItemName(item, name?, options?)` | 写 `item.<id>.name`，`name` 省略时回退物品短名 |
 | `addFlipbookTexture(flip)` / `addFlipbookTextures(flips)` | 追加 `flipbook_textures.json` |
 | `addFog(fog)` | 写 `fogs/<短名>.json` |
+| `addBiomesClient(client)` | 追加 `biomes_client.json`（雾/颜色/粒子/音乐指派） |
 | `addParticle(particle)` | 写 `particles/<短名>.json`（**资源包侧**） |
 | `addItemTextureAtlas(atlas)` | 覆写 `item_texture.json` |
 | `addAttachable(attachable)` | 写 `attachables/<短名>.json` |
@@ -187,7 +195,8 @@ type Addable =
   | Recipe | LootTable | TradeTable
   | UiFile | UiDefs | UiGlobalVariables
   | LangFile | ItemTextureAtlas | Attachable | SoundBatch
-  | DynamicItemModel | FrameSequence | FlipbookTextures
+  | DynamicItemModel | FrameSequence | FlipbookTextures | BiomesClient
+  | Animation | AnimationController | Dialogue | Structure | StructurePlacement | ScriptFile
   | [Recipe, string?] | [LootTable, string] | [TradeTable, string]
   | Addable[];
 
@@ -203,7 +212,14 @@ interface DefineSpec {
   features?: Feature[];
   featureRules?: FeatureRule[];
   biomes?: Biome[];
-  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | Fog)[];
+  biomesClient?: BiomesClient[];
+  animations?: Animation[];
+  animationControllers?: AnimationController[];
+  dialogues?: Dialogue[];
+  structures?: Structure[];
+  structurePlacements?: StructurePlacement[];
+  scripts?: ScriptFile[];
+  rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | BiomesClient | Fog)[];
 }
 ```
 
@@ -235,9 +251,15 @@ mod.add(
 | `LootTable` / `TradeTable` | `addLootTable` / `addTradeTable` | — |
 | `UiFile` / `UiDefs` / `UiGlobalVariables` | — | `addUiFile` / `createUiDefs` / `addGlobalVariables` |
 | `LangFile` / `ItemTextureAtlas` / `Attachable` / `SoundBatch` / `DynamicItemModel` / `FrameSequence` / `FlipbookTextures` | — | 对应 `addXxx` |
+| `BiomesClient` | — | `addBiomesClient` |
 | `Particle` | — | `addParticle` |
 | `Feature` / `FeatureRule` / `Biome` | `addFeature` / `addFeatureRule` / `addBiome` | — |
 | `Fog` | — | `addFog` |
+| `Animation` / `AnimationController` | `addAnimation` / `addAnimationController` | — |
+| `Dialogue` | `addDialogue` | — |
+| `Structure` | `addStructure`（BP `structures/*`） | — |
+| `StructurePlacement` | `addStructurePlacement` | — |
+| `ScriptFile` | `addScriptFile`（BP `scripts/*`） | — |
 
 ### `ModMain.define(spec)`
 
@@ -256,13 +278,19 @@ mod.define({
   features: [ore],
   featureRules: [oreRule],
   biomes: [plains],
+  animations: [wave],
+  animationControllers: [walk],
+  dialogues: [guardDlg],
+  structures: [castle],
+  structurePlacements: [castlePlace],
+  scripts: [helperFile],
   rp: [atlas, attachable],
 });
 ```
 
 ### 工厂方法
 
-`ModMain` 提供创建即接线的工厂，返回构造出的实例供继续链式配置：`item` / `block` / `entityBP` / `entityRP` / `renderController` / `spawnRules` / `shaped` / `shapeless` / `furnace` / `brewingMix` / `brewingContainer` / `loot(config, path)` / `trade(config, path)` / `ui` / `particle` / `feature` / `featureRule` / `biome` / `fog`。
+`ModMain` 提供创建即接线的工厂，返回构造出的实例供继续链式配置：`item` / `block` / `entityBP` / `entityRP` / `renderController` / `spawnRules` / `shaped` / `shapeless` / `furnace` / `brewingMix` / `brewingContainer` / `loot(config, path)` / `trade(config, path)` / `ui` / `particle` / `feature` / `featureRule` / `biome` / `fog` / `biomesClient` / `animation` / `animationController` / `dialogue` / `structure` / `structurePlacement` / `scriptApi`。
 
 ---
 
@@ -599,10 +627,213 @@ constructor(config: FogConfig);
 
 `identifier`（必填）、`distance`（`air`/`water`/`lava` 各层）、`volumetric`、`formatVersion`（默认 `1.16.100`）。方法：`buildJson()`。每个距离层 `render_distance_type` 默认 `fixed`。
 
+### `BiomesClient` — 生物群系客户端视觉（RP `biomes_client.json`）
+
+```ts
+constructor(config: BiomesClientConfig);
+```
+
+`biomes` 为必填对象（`Record<string, BiomeClientEntry>`），把每个生物群系映射到其**客户端**视觉：
+哪团雾生效（`fogIdentifier`）、天空/水/草/树叶颜色、环境粒子、落尘颜色、环境光强与生物群系音乐。
+它补上了 `Fog` 留的缺口：`Fog` 只写 `fogs/*.json` 雾定义，而把雾指派给（自定义）群系需要这个文件。
+
+**`BiomeClientEntry` 字段**（camelCase 输入，输出为游戏要求的 snake_case）：
+
+| 字段 | 类型 | 输出键 | 说明 |
+| --- | --- | --- | --- |
+| `fogIdentifier` | `string` | `fog_identifier` | 应用到该群系的雾（`Fog` 的 identifier 或原版雾 id） |
+| `fogIds` | `string[]` | `fog_ids` | 额外叠加的雾 id |
+| `waterFogColor` | `string` | `water_fog_color` | 水下雾色 `#RRGGBB` |
+| `waterFogDistance` | `number` | `water_fog_distance` | 水下雾结束距离 |
+| `skyColor` | `string` | `sky_color` | 天空色 `#RRGGBB` |
+| `waterColor` | `string` | `water_color` | 水色；设置时默认写 `override_water_color: true` |
+| `overrideWaterColor` | `boolean` | `override_water_color` | 覆盖水的假色 |
+| `grassColor` | `string` | `grass_color` | 草色；设置时默认写 `override_grass_color: true` |
+| `overrideGrassColor` | `boolean` | `override_grass_color` | 覆盖草的假色 |
+| `foliageColor` | `string` | `foliage_color` | 树叶色；设置时默认写 `override_foliage_color: true` |
+| `overrideFoliageColor` | `boolean` | `override_foliage_color` | 覆盖树叶的假色 |
+| `fallDustColor` | `string` | `fall_dust_color` | 方块破坏/下落尘颜色 |
+| `ambientLight` | `number` | `ambient_light` | 群系内环境光乘数 |
+| `particle` | `BiomeClientParticle` | `particle` | 环境粒子（`probability` / `particle` / `particleColor`） |
+| `biomeMusic` | `string` | `biome_music` | 群系音乐（`sound_definitions` 事件） |
+| `biomeMusicVolume` | `number` | `biome_music_volume` | 音乐音量 0–1 |
+
+**实例 getter / 方法**：`biomeIds` / `filePath`（`biomes_client.json`）/ `set(biomeId, entry)` / `setFog(biomeId, fog)`（接受 `Fog` 实例或字符串）/ `remove(biomeId)` / `buildJson()` / `toString()`。常量 `BIOMES_CLIENT_PATH` 与辅助函数 `buildBiomeClientEntry(entry)` 也已导出。
+
+```ts
+import { BiomesClient, Fog } from 'spawnmodbe';
+
+const rubyFog = new Fog({
+  identifier: 'mymod:ruby_fog',
+  distance: { air: { fog_start: 0, fog_end: 100, fog_color: '#FFAAAA' } },
+});
+const client = new BiomesClient({
+  biomes: {
+    'mymod:ruby_plains': {
+      fogIdentifier: rubyFog.identifier,   // 复用 Fog
+      skyColor: '#66aaff',
+      waterColor: '#2244aa',
+      particle: { probability: 0.05, particle: 'mymod:ruby_spark', particleColor: [255, 0, 0] },
+    },
+  },
+});
+rp.addFog(rubyFog);
+rp.addBiomesClient(client);   // → RP/biomes_client.json
+mod.add(client);              // 统一接线：RP-only mod 也可接
+```
+
 ---
 
-## 12. JSON UI
+## 12. 动画 / 结构 / 对话 / Script API
 
+这四个模块族都写入**行为包**（BP）。动画 / 动画控制器 / 对话走 `Behavior.addXxx`；
+结构 `.mcstructure` 走 `Behavior.addStructure`；结构放置走 `Behavior.addStructurePlacement`；
+脚本源走 `Behavior.addScriptFile`。
+
+### `Animation` — 实体动画（BP `animations/*.json`）
+
+```ts
+constructor(config: AnimationConfig);
+```
+
+`identifier`（必填，动画键如 `animation.mymod.wave`）、`animationLength`（`animation_length`）、
+`loop`（默认 `false`）、`body`（`bones` / molang 体，透传）、`formatVersion`（默认 `1.10.0`）。
+方法：`buildJson()`；getter `identifier` / `fileName`。
+
+```ts
+const anim = new Animation({
+  identifier: 'animation.mymod.wave',
+  animationLength: 0.5,
+  loop: true,
+  body: { bones: { body: { rotation: ['q.life_time * 30', '0', '0'] } } },
+});
+bp.addAnimation(anim);   // → BP/animations/wave.json
+```
+
+### `AnimationController` — 动画控制器（BP `animation_controllers/*.json`）
+
+```ts
+constructor(config: AnimationControllerConfig);
+```
+
+`identifier`（必填，如 `controller.animation.mymod.walk`）、`initialState`（默认 `default`）、
+`states`（必填对象）、`formatVersion`（默认 `1.10.0`）。方法：`buildJson()`。
+
+辅助：`state(name, options?)` 构造一个状态（`animations` / `onEntry` / `onExit` / `transitions`），
+`transition(target, condition)` 构造 `{ target: condition }`。用 `...` 展开合并进 `states`。
+
+```ts
+const ctrl = new AnimationController({
+  identifier: 'controller.animation.mymod.walk',
+  initialState: 'idle',
+  states: {
+    ...state('idle', { transitions: transition('walk', 'q.is_moving') }),
+    ...state('walk', { onEntry: ['/say walking'] }),
+  },
+});
+bp.addAnimationController(ctrl);   // → BP/animation_controllers/walk.json
+```
+
+### `Dialogue` — NPC 对话（BP `dialogue/*.json`）
+
+```ts
+constructor(config: DialogueConfig);
+```
+
+`identifier`（必填，用于文件名）、`scenes`（必填数组）、`formatVersion`（默认 `1.17.0`）。
+输出 `{ format_version, 'minecraft:npc_dialogue': { scenes } }`。方法：`buildJson()`。
+
+辅助：`scene(tag, options?)`（`npcName` / `text` / `buttons` / 透传字段）、
+`dialogueButton(name, commands?, body?)`。
+
+```ts
+const dlg = new Dialogue({
+  identifier: 'mymod:wanderer',
+  scenes: [
+    scene('mymod:start', {
+      npcName: 'Wanderer',
+      text: 'Hello!',
+      buttons: [dialogueButton('Ask', ['/say hi'])],
+    }),
+  ],
+});
+bp.addDialogue(dlg);   // → BP/dialogue/wanderer.json
+```
+
+### `Structure` — `.mcstructure`（BP `structures/<namespace>/<name>.mcstructure`）
+
+```ts
+constructor(config: StructureConfig);
+```
+
+`identifier`（必填，如 `mymod:castle`，也是 `structure_name` 引用）、`size`（必填 `[x,y,z]`）、
+`origin`（默认 `[0,0,0]`）、`blocks`（`Record<string, Array<[x,y,z]>>`）、
+`blockStates`（按方块名给状态）、`defaultBlock`（默认 `minecraft:air`，填充未指定格）、
+`formatVersion`（默认 `1`）。方法：`buildBinary()` 返回小端 NBT `Buffer`。
+
+> `.mcstructure` 为**小端 NBT**（非 gzip），框架用零依赖手写编码器生成，与游戏导出格式字节级一致。
+> 索引展平顺序为 `x + y*sizeX + z*sizeX*sizeY`（x 最快）。
+
+```ts
+const struct = new Structure({
+  identifier: 'mymod:castle',
+  size: [4, 4, 4],
+  blocks: { 'minecraft:stone': [[0, 0, 0], [1, 1, 1]], 'minecraft:oak_planks': [[2, 0, 0]] },
+  blockStates: { 'minecraft:stone': { } },
+});
+bp.addStructure(struct);   // → BP/structures/mymod/castle.mcstructure
+```
+
+### `StructurePlacement` — 结构放置 feature（BP `features/*.json`）
+
+```ts
+constructor(config: StructurePlacementConfig);
+```
+
+`identifier`（必填，feature id）、`structureName`（默认等于 `identifier`）、`adjustmentRadius`（默认 `8`）、
+`transform.rotation`（`0|90|180|270`）、`transform.mirror`（`'none'|'x'|'z'|'xz'`）、
+`structureAnimationInitializationCommands` / `structureAnimationTickCommands`（可选命令数组）、
+`formatVersion`（默认 `1.13.0`）。输出 `minecraft:structure_template_feature`。方法：`buildJson()`。
+
+```ts
+const place = new StructurePlacement({
+  identifier: 'mymod:castle_placement',
+  structureName: 'mymod:castle',
+  transform: { rotation: 90, mirror: 'z' },
+  structureAnimationInitializationCommands: ['/say placed'],
+});
+bp.addStructurePlacement(place);   // → BP/features/castle_placement.json
+mod.add(place);                    // 统一接线也可
+```
+
+### `ScriptApiSource` / `ScriptFile` / `fetchScriptsOfType` — Script API 辅助（BP `scripts/*`）
+
+```ts
+const src = new ScriptApiSource();          // 默认从 '@minecraft/server' 导入
+src.import('world');                        // 声明导入
+src.import('system');
+const js = src.buildJs(`world.sendMessage('hi')`);
+```
+
+`ScriptApiSource` 生成：`// @ts-ignore` + 单个 `const { ... } = require('@minecraft/server')` 解构导入，
+再拼接 `buildJs(body)` 的正文。方法 `buildJs(body?)` / `toJs(body?)`；选项 `moduleName` /
+`tsIgnore`（默认 `true`）。常量 `SERVER_MODULE = '@minecraft/server'`。
+
+```ts
+const file = new ScriptFile('helpers/main.js', js);  // path 相对 scripts/
+bp.addScriptFile(file);                              // → BP/scripts/helpers/main.js
+
+// 递归读取本地目录中的 .js，产出 ScriptFile[]（path 相对该目录）
+const scripts = await fetchScriptsOfType('sapi', '.js');
+mod.define({ scripts });                              // 统一接线
+```
+
+> `ScriptApiSource` 只是把 `@minecraft/server` 的导入与正文拼成合法 JS 字符串，框架不执行、不
+> 类型检查生成代码；生成逻辑均由用户编写。
+
+---
+
+## 13. JSON UI
 ### `UiFile`
 
 ```ts
@@ -656,7 +887,7 @@ constructor(config: UiGlobalVariablesConfig);
 
 ---
 
-## 13. 工具与库函数
+## 14. 工具与库函数
 
 ### `PackBase`（抽象基类，`Behavior` / `Resource` 继承）
 
@@ -691,7 +922,7 @@ constructor(config: UiGlobalVariablesConfig);
 
 ---
 
-## 14. 配置与共享类型
+## 15. 配置与共享类型
 
 来自 `types.ts`。
 
@@ -758,7 +989,7 @@ type SoundEventDefinition = { maxDistance?; sounds: SoundDefinition[] };
 
 ---
 
-## 15. CLI
+## 16. CLI
 
 ```bash
 spawnmodbe init [<dir>] [options]

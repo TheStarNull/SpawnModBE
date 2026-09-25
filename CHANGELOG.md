@@ -5,6 +5,52 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [1.0.0] - 2026-09-25
+
+### Added
+
+- 动画生成器（`Animation`：BP `animations/*.json`，`loop` / `animation_length` / 骨骼 `bones` 体）
+- 动画控制器生成器（`AnimationController`：BP `animation_controllers/*.json`，
+  `initial_state` + `states`，配套 `state()` / `transition()` 助手与
+  `on_entry` / `on_exit` / `animations` / `transitions` 选项）
+- NPC 对话生成器（`Dialogue`：BP `dialogue/*.json`，`minecraft:npc_dialogue`
+  场景列表，配套 `scene()` / `dialogueButton()` 助手）
+- 结构生成器（`Structure`：BP `structures/<namespace>/<name>.mcstructure`，
+  零依赖手写**小端 NBT** 编码器，与真实 `.mcstructure` 导出字节级一致；
+  支持 `size` / `origin` / `blocks` / `blockStates` / `defaultBlock`）
+- 结构放置器（`StructurePlacement`：`minecraft:structure_template_feature`
+  JSON，`structure_name` / `adjustment_radius` / `transform.rotation`(0|90|180|270) /
+  `transform.mirror`(none|x|z|xz) / `structure_animation_initialization_commands` /
+  `structure_animation_tick_commands`）
+- Script API 辅助库（`ScriptApiSource`：从 `@minecraft/server` 生成带
+  `// @ts-ignore` 的 CommonJS 解构导入；`ScriptFile`：`scripts/*` 文件描述；
+  `fetchScriptsOfType()`：递归读取本地目录中的脚本；常量 `SERVER_MODULE`）
+- 统一接线扩展：`mod.add(实例)` / `mod.define({ animations, animationControllers,
+  dialogues, structures, structurePlacements, scripts })` /
+  `mod.animation` / `mod.animationController` / `mod.dialogue` / `mod.scriptApi` /
+  `mod.structure` / `mod.structurePlacement` 工厂
+- `Behavior.addAnimation` / `addAnimationController` / `addDialogue` /
+  `addStructure` / `addStructurePlacement` / `addScriptFile`
+- 冒烟测试 71 → 78（动画 / 动画控制器 / 对话 / 结构二进制 / 结构放置 / 脚本辅助 / 目录采集）
+
+## [0.5.0] - 2026-09-25
+
+### Added
+
+- 生物群系客户端视觉生成器（`BiomesClient`：RP `biomes_client.json`，
+  把雾 / 天空 / 水 / 草 / 树叶颜色、环境粒子、落尘颜色、环境光强与群系音乐指派给自定义群系，
+  补上 `Fog` 只写 `fogs/*.json` 雾定义而无法指派给群系的缺口）
+- `BiomeClientEntry` 字段（camelCase 输入 → snake_case 输出）：
+  `fogIdentifier` / `fogIds` / `waterFogColor` / `waterFogDistance` / `skyColor` /
+  `waterColor` / `grassColor` / `foliageColor` / `fallDustColor` / `ambientLight` /
+  `particle`（含 `particleColor`）/ `biomeMusic` / `biomeMusicVolume`；
+  设置颜色时自动补写 `override_*_color: true`（可显式覆盖）
+- 实例链式 API：`set(biomeId, entry)` / `setFog(biomeId, fog)`（接受 `Fog` 实例或雾 id）/
+  `remove(biomeId)`；常量 `BIOMES_CLIENT_PATH` 与辅助函数 `buildBiomeClientEntry(entry)` 一并导出
+- `Resource.addBiomesClient(client)`：追加/合并写入 `biomes_client.json`（多次调用共存）
+- 统一接线扩展：`mod.add(实例)` / `mod.define({ biomesClient })` / `mod.biomesClient(config)` 工厂
+- 冒烟测试 69 → 71（`BiomesClient` 构建 + 合并写入 + 统一接线 + 工厂）
+
 ## [0.4.0] - 2026-09-22
 
 ### Added
