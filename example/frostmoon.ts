@@ -106,214 +106,197 @@ mod.item({
 
 // ---------------------------------------------------------------------------
 // Player override via the `Player` module — one object for both packs.
-// Everything is authored inline through the API; the module writes BP
-// `entities/player.json` + RP `entity/player.entity.json`.
+// Built with the fluent API — the module writes BP `entities/player.json` +
+// RP `entity/player.entity.json`.
 // ---------------------------------------------------------------------------
-const player = new Player({
-  behavior: {
-    formatVersion: '1.8.0',
-    isSpawnable: false,
-    isSummonable: true,
-    isExperimental: false,
-    scripts: { animate: ['test'] },
-    animations: { test: 'animation.test' },
-    components: {
-      'minecraft:variant': { value: 0 },
-      'minecraft:environment_sensor': [
-        {
-          on_environment: {
-            filters: {
-              all_of: [
-                { test: 'has_mob_effect', subject: 'self', value: 'bad_omen' },
-                { test: 'is_in_village', subject: 'self', value: true },
-              ],
-            },
-            event: 'minecraft:trigger_raid',
-          },
-        },
-        {
-          on_environment: {
-            filters: {
-              all_of: [{ test: 'has_equipment', subject: 'self', value: 'yw:yw_sword' }],
-            },
-            event: 'yw',
-          },
-        },
-      ],
-      'minecraft:type_family': { family: ['player'] },
-      'minecraft:is_hidden_when_invisible': {},
-      'minecraft:loot': { table: 'loot_tables/empty.json' },
-      'minecraft:collision_box': { width: 0, height: 0 },
-      'minecraft:can_climb': {},
-      'minecraft:movement': { value: 0.1 },
-      'minecraft:attack': { damage: 1 },
-      'minecraft:player.saturation': { value: 20 },
-      'minecraft:player.exhaustion': { value: 0, max: 4 },
-      'minecraft:player.level': { value: 0, max: 2147400000 },
-      'minecraft:player.experience': { value: 0, max: 1 },
-      'minecraft:breathable': {
-        totalSupply: 15,
-        suffocateTime: -1,
-        inhaleTime: 3.75,
-        generatesBubbles: false,
-      },
-      'minecraft:nameable': { alwaysShow: true, allowNameTagRenaming: true },
-      'minecraft:physics': {},
-      'minecraft:insomnia': { days_until_insomnia: 3 },
-      'minecraft:rideable': {
-        seat_count: 2,
-        family_types: ['parrot_tame'],
-        pull_in_entities: true,
-        seats: [
-          { position: [0.4, -0.15, 0.04], min_rider_count: 0, max_rider_count: 0, lock_rider_rotation: 0 },
-          { position: [-0.4, -0.15, 0.04], min_rider_count: 1, max_rider_count: 2, lock_rider_rotation: 0 },
-        ],
-      },
-      'minecraft:scaffolding_climber': {},
-    },
-    componentGroups: {
-      base: {
-        'minecraft:variant': { value: 1 },
-        'minecraft:health': { min: 0, max: 20 },
-        'minecraft:attack': { damage: 1 },
-      },
-      yw: { 'minecraft:health': { value: 20, min: 20, max: 20 } },
-      die: { 'minecraft:health': { value: 0, min: 0, max: 0 } },
-      'minecraft:add_bad_omen': {
-        'minecraft:spell_effects': {
-          add_effects: [{ effect: 'bad_omen', duration: 6000, display_on_screen_animation: true }],
-        },
-        'minecraft:timer': {
-          time: [0.0, 0.0],
-          looping: false,
-          time_down_event: { event: 'minecraft:clear_add_bad_omen', target: 'self' },
-        },
-      },
-      'minecraft:clear_bad_omen_spell_effect': { 'minecraft:spell_effects': {} },
-      'minecraft:raid_trigger': {
-        'minecraft:raid_trigger': {
-          triggered_event: { event: 'minecraft:remove_raid_trigger', target: 'self' },
-        },
-        'minecraft:spell_effects': { remove_effects: 'bad_omen' },
-      },
-    },
-    events: {
-      yw: { add: { component_groups: ['yw'] } },
-      die: { add: { component_groups: ['die'] } },
-      base: { add: { component_groups: ['base'] } },
-      'minecraft:gain_bad_omen': { add: { component_groups: ['minecraft:add_bad_omen'] } },
-      'minecraft:clear_add_bad_omen': {
-        remove: { component_groups: ['minecraft:add_bad_omen'] },
-        add: { component_groups: ['minecraft:clear_bad_omen_spell_effect'] },
-      },
-      'minecraft:trigger_raid': { add: { component_groups: ['minecraft:raid_trigger'] } },
-      'minecraft:remove_raid_trigger': { remove: { component_groups: ['minecraft:raid_trigger'] } },
-    },
-  },
-  client: {
-    formatVersion: '1.10.0',
-    materials: { default: 'entity_alphatest', cape: 'entity_alphatest', animated: 'player_animated' },
-    textures: { default: 'textures/entity/steve', cape: 'textures/entity/cape_invisible' },
-    geometry: { default: 'geometry.humanoid.custom', cape: 'geometry.cape' },
-    renderControllers: [
-      { 'controller.render.player.first_person': 'variable.is_first_person' },
-      { 'controller.render.player.third_person': '!variable.is_first_person && !variable.map_face_icon' },
-      { 'controller.render.player.map': 'variable.map_face_icon' },
-    ],
-    animations: {
-      root: 'controller.animation.player.root',
-      base_controller: 'controller.animation.player.base',
-      hudplayer: 'controller.animation.player.hudplayer',
-      humanoid_base_pose: 'animation.humanoid.base_pose',
-      look_at_target: 'controller.animation.humanoid.look_at_target',
-      look_at_target_ui: 'animation.player.look_at_target.ui',
-      look_at_target_default: 'animation.humanoid.look_at_target.default',
-      look_at_target_gliding: 'animation.humanoid.look_at_target.gliding',
-      look_at_target_swimming: 'animation.humanoid.look_at_target.swimming',
-      look_at_target_inverted: 'animation.player.look_at_target.inverted',
-      cape: 'animation.player.cape',
-      first: 'animation.sc.wield_first_person',
-      first2: 'animation.sc.wield_first_person2',
-      wave: 'animation.sc.wave',
-      third: 'animation.sc.wield_third_person',
-      defense: 'controller.animation.sc.defense',
-      defense2: 'controller.animation.sc.defense2',
-      'move.arms': 'animation.player.move.arms',
-      'move.legs': 'animation.player.move.legs',
-      swimming: 'animation.player.swim',
-      'swimming.legs': 'animation.player.swim.legs',
-      'riding.arms': 'animation.player.riding.arms',
-      'riding.legs': 'animation.player.riding.legs',
-      holding: 'animation.player.holding',
-      brandish_spear: 'animation.humanoid.brandish_spear',
-      charging: 'animation.humanoid.charging',
-      'attack.positions': 'animation.player.attack.positions',
-      'attack.rotations': 'animation.player.attack.rotations',
-      sneaking: 'animation.player.sneaking',
-      bob: 'animation.player.bob',
-      damage_nearby_mobs: 'animation.humanoid.damage_nearby_mobs',
-      bow_and_arrow: 'animation.humanoid.bow_and_arrow',
-      use_item_progress: 'animation.humanoid.use_item_progress',
-      skeleton_attack: 'animation.skeleton.attack',
-      sleeping: 'animation.player.sleeping',
-      first_person_base_pose: 'animation.player.first_person.base_pose',
-      first_person_empty_hand: 'animation.player.first_person.empty_hand',
-      first_person_swap_item: 'animation.player.first_person.swap_item',
-      first_person_attack_controller: 'controller.animation.player.first_person_attack',
-      first_person_attack_rotation: 'animation.player.first_person.attack_rotation',
-      first_person_attack_rotation_item: 'animation.player.first_person.attack_rotation_item',
-      first_person_vr_attack_rotation: 'animation.player.first_person.vr_attack_rotation',
-      first_person_walk: 'animation.player.first_person.walk',
-      first_person_map_controller: 'controller.animation.player.first_person_map',
-      first_person_map_hold: 'animation.player.first_person.map_hold',
-      first_person_map_hold_attack: 'animation.player.first_person.map_hold_attack',
-      first_person_map_hold_off_hand: 'animation.player.first_person.map_hold_off_hand',
-      first_person_map_hold_main_hand: 'animation.player.first_person.map_hold_main_hand',
-      first_person_crossbow_equipped: 'animation.player.first_person.crossbow_equipped',
-      first_person_crossbow_hold: 'animation.player.first_person.crossbow_hold',
-      first_person_breathing_bob: 'animation.player.first_person.breathing_bob',
-      third_person_crossbow_equipped: 'animation.player.crossbow_equipped',
-      third_person_bow_equipped: 'animation.player.bow_equipped',
-      crossbow_hold: 'animation.player.crossbow_hold',
-      crossbow_controller: 'controller.animation.player.crossbow',
-      shield_block_main_hand: 'animation.player.shield_block_main_hand',
-      shield_block_off_hand: 'animation.player.shield_block_off_hand',
-      blink: 'controller.animation.persona.blink',
-    },
-    scripts: {
-      scale: '0.9375',
-      initialize: [
-        'variable.is_holding_right = 0.0;',
-        'variable.is_blinking = 0.0;',
-        'variable.last_blink_time = 0.0;',
-        'variable.hand_bob = 0.0;',
-        'variable.first_person_item_rotation_factor = 0.0;',
-      ],
-      pre_animation: [
-        'variable.attack_time = query.attack_time;',
-        'variable.helmet_layer_visible = 1.0;',
-        'variable.leg_layer_visible = 1.0;',
-        'variable.boot_layer_visible = 1.0;',
-        'variable.chest_layer_visible = 1.0;',
-        'variable.attack_body_rot_y = Math.sin(360*Math.sqrt(variable.attack_time)) * 5.0;',
-        'variable.tcos0 = (math.cos(query.modified_distance_moved * 38.17) * query.modified_move_speed / variable.gliding_speed_value) * 57.3;',
-        'variable.first_person_rotation_factor = math.sin((1 - variable.attack_time) * 180.0);',
-        'variable.first_person_item_rotation_factor = math.sin((1 - variable.attack_time) * 180.0);',
-        'variable.hand_bob = query.life_time < 0.01 ? 0.0 : variable.hand_bob + ((query.is_on_ground && query.is_alive ? math.clamp(math.sqrt(math.pow(query.position_delta(0), 2.0) + math.pow(query.position_delta(2), 2.0)), 0.0, 0.1) : 0.0) - variable.hand_bob) * 0.02;',
-        'variable.map_angle = math.clamp(1 - variable.player_x_rotation / 45.1, 0.0, 1.0);',
-        'variable.item_use_normalized = query.main_hand_item_use_duration / query.main_hand_item_max_duration;',
-        "variable.sc = query.get_equipped_item_name('off_hand') != 'shield' && query.get_equipped_item_name('main_hand') == 'yw_sword';",
-        'variable.defense = query.is_using_item;',
-      ],
-      animate: ['root'],
-    },
-    enableAttachables: true,
-  },
-});
+const player = new Player()
+  .setSpawnable(false)
+  .setSummonable(true)
+  .setExperimental(false)
 
-// Chain mutators are available on top of the baseline (deep-merge semantics) —
-// e.g. `player.addPreAnimation('variable.extra = 1.0;')` when tweaking the
-// addon later without touching the vanilla payload.
+  // BP: 挥剑事件动画绑定（`description.animations` + `scripts.animate`）。
+  .addBehaviorAnimation('test', 'animation.test')
+  .addBehaviorAnimate('test')
+
+  // BP: 环境感测 —— 村庄内中「不祥之兆」时触发袭击（原版逻辑）。
+  .addEnvironmentSensor('minecraft:trigger_raid', {
+    all_of: [
+      { test: 'has_mob_effect', subject: 'self', value: 'bad_omen' },
+      { test: 'is_in_village', subject: 'self', value: true },
+    ],
+  })
+  // BP: 霜月核心 —— 手持 `yw:yw_sword` 时触发事件 `yw`。
+  .addHeldItemSensor('yw:yw_sword', 'yw')
+
+  // BP: 玩家基础组件（保留原版玩家定义，完整覆盖时必须随包携带）。
+  .setComponent('minecraft:variant', { value: 0 })
+  .setComponent('minecraft:type_family', { family: ['player'] })
+  .setComponent('minecraft:is_hidden_when_invisible', {})
+  .setComponent('minecraft:loot', { table: 'loot_tables/empty.json' })
+  .setComponent('minecraft:collision_box', { width: 0, height: 0 })
+  .setComponent('minecraft:can_climb', {})
+  .setComponent('minecraft:movement', { value: 0.1 })
+  .setComponent('minecraft:attack', { damage: 1 })
+  .setComponent('minecraft:player.saturation', { value: 20 })
+  .setComponent('minecraft:player.exhaustion', { value: 0, max: 4 })
+  .setComponent('minecraft:player.level', { value: 0, max: 2147400000 })
+  .setComponent('minecraft:player.experience', { value: 0, max: 1 })
+  .setComponent('minecraft:breathable', {
+    totalSupply: 15,
+    suffocateTime: -1,
+    inhaleTime: 3.75,
+    generatesBubbles: false,
+  })
+  .setComponent('minecraft:nameable', { alwaysShow: true, allowNameTagRenaming: true })
+  .setComponent('minecraft:physics', {})
+  .setComponent('minecraft:insomnia', { days_until_insomnia: 3 })
+  .setComponent('minecraft:rideable', {
+    seat_count: 2,
+    family_types: ['parrot_tame'],
+    pull_in_entities: true,
+    seats: [
+      { position: [0.4, -0.15, 0.04], min_rider_count: 0, max_rider_count: 0, lock_rider_rotation: 0 },
+      { position: [-0.4, -0.15, 0.04], min_rider_count: 1, max_rider_count: 2, lock_rider_rotation: 0 },
+    ],
+  })
+  .setComponent('minecraft:scaffolding_climber', {})
+
+  // BP: 组件组 / 事件 —— 霜月自定的剑、死亡、基础状态，加上原版袭击逻辑。
+  .addComponentGroup('base', {
+    'minecraft:variant': { value: 1 },
+    'minecraft:health': { min: 0, max: 20 },
+    'minecraft:attack': { damage: 1 },
+  })
+  .addComponentGroup('yw', { 'minecraft:health': { value: 20, min: 20, max: 20 } })
+  .addComponentGroup('die', { 'minecraft:health': { value: 0, min: 0, max: 0 } })
+  .addComponentGroup('minecraft:add_bad_omen', {
+    'minecraft:spell_effects': {
+      add_effects: [{ effect: 'bad_omen', duration: 6000, display_on_screen_animation: true }],
+    },
+    'minecraft:timer': {
+      time: [0.0, 0.0],
+      looping: false,
+      time_down_event: { event: 'minecraft:clear_add_bad_omen', target: 'self' },
+    },
+  })
+  .addComponentGroup('minecraft:clear_bad_omen_spell_effect', { 'minecraft:spell_effects': {} })
+  .addComponentGroup('minecraft:raid_trigger', {
+    'minecraft:raid_trigger': {
+      triggered_event: { event: 'minecraft:remove_raid_trigger', target: 'self' },
+    },
+    'minecraft:spell_effects': { remove_effects: 'bad_omen' },
+  })
+  .addEvent('yw', { add: { component_groups: ['yw'] } })
+  .addEvent('die', { add: { component_groups: ['die'] } })
+  .addEvent('base', { add: { component_groups: ['base'] } })
+  .addEvent('minecraft:gain_bad_omen', { add: { component_groups: ['minecraft:add_bad_omen'] } })
+  .addEvent('minecraft:clear_add_bad_omen', {
+    remove: { component_groups: ['minecraft:add_bad_omen'] },
+    add: { component_groups: ['minecraft:clear_bad_omen_spell_effect'] },
+  })
+  .addEvent('minecraft:trigger_raid', { add: { component_groups: ['minecraft:raid_trigger'] } })
+  .addEvent('minecraft:remove_raid_trigger', { remove: { component_groups: ['minecraft:raid_trigger'] } })
+
+  // RP: 玩家客户端材质 / 贴图 / 几何 / 渲染控制器 / 脚本。
+  .setMaterial('default', 'entity_alphatest')
+  .setMaterial('cape', 'entity_alphatest')
+  .setMaterial('animated', 'player_animated')
+  .setTexture('default', 'textures/entity/steve')
+  .setTexture('cape', 'textures/entity/cape_invisible')
+  .setGeometry('default', 'geometry.humanoid.custom')
+  .setGeometry('cape', 'geometry.cape')
+  .addRenderController({ 'controller.render.player.first_person': 'variable.is_first_person' })
+  .addRenderController({ 'controller.render.player.third_person': '!variable.is_first_person && !variable.map_face_icon' })
+  .addRenderController({ 'controller.render.player.map': 'variable.map_face_icon' })
+  .setScale('0.9375')
+  .addInitialize('variable.is_holding_right = 0.0;')
+  .addInitialize('variable.is_blinking = 0.0;')
+  .addInitialize('variable.last_blink_time = 0.0;')
+  .addInitialize('variable.hand_bob = 0.0;')
+  .addInitialize('variable.first_person_item_rotation_factor = 0.0;')
+  .addPreAnimation('variable.attack_time = query.attack_time;')
+  .addPreAnimation('variable.helmet_layer_visible = 1.0;')
+  .addPreAnimation('variable.leg_layer_visible = 1.0;')
+  .addPreAnimation('variable.boot_layer_visible = 1.0;')
+  .addPreAnimation('variable.chest_layer_visible = 1.0;')
+  .addPreAnimation('variable.attack_body_rot_y = Math.sin(360*Math.sqrt(variable.attack_time)) * 5.0;')
+  .addPreAnimation('variable.tcos0 = (math.cos(query.modified_distance_moved * 38.17) * query.modified_move_speed / variable.gliding_speed_value) * 57.3;')
+  .addPreAnimation('variable.first_person_rotation_factor = math.sin((1 - variable.attack_time) * 180.0);')
+  .addPreAnimation('variable.first_person_item_rotation_factor = math.sin((1 - variable.attack_time) * 180.0);')
+  .addPreAnimation('variable.hand_bob = query.life_time < 0.01 ? 0.0 : variable.hand_bob + ((query.is_on_ground && query.is_alive ? math.clamp(math.sqrt(math.pow(query.position_delta(0), 2.0) + math.pow(query.position_delta(2), 2.0)), 0.0, 0.1) : 0.0) - variable.hand_bob) * 0.02;')
+  .addPreAnimation('variable.map_angle = math.clamp(1 - variable.player_x_rotation / 45.1, 0.0, 1.0);')
+  .addPreAnimation('variable.item_use_normalized = query.main_hand_item_use_duration / query.main_hand_item_max_duration;')
+  .addPreAnimation("variable.sc = query.get_equipped_item_name('off_hand') != 'shield' && query.get_equipped_item_name('main_hand') == 'yw_sword';")
+  .addPreAnimation('variable.defense = query.is_using_item;')
+  .addAnimate('root')
+  .setEnableAttachables(true);
+
+// RP: 玩家动画短名绑定（完整覆盖客户端实体时必须重新声明全部原版绑定 +
+// 霜月新增的 `first/third/defense` 等）。
+const PLAYER_CLIENT_ANIMATIONS: ReadonlyArray<readonly [string, string]> = [
+  ['root', 'controller.animation.player.root'],
+  ['base_controller', 'controller.animation.player.base'],
+  ['hudplayer', 'controller.animation.player.hudplayer'],
+  ['humanoid_base_pose', 'animation.humanoid.base_pose'],
+  ['look_at_target', 'controller.animation.humanoid.look_at_target'],
+  ['look_at_target_ui', 'animation.player.look_at_target.ui'],
+  ['look_at_target_default', 'animation.humanoid.look_at_target.default'],
+  ['look_at_target_gliding', 'animation.humanoid.look_at_target.gliding'],
+  ['look_at_target_swimming', 'animation.humanoid.look_at_target.swimming'],
+  ['look_at_target_inverted', 'animation.player.look_at_target.inverted'],
+  ['cape', 'animation.player.cape'],
+  ['first', 'animation.sc.wield_first_person'],
+  ['first2', 'animation.sc.wield_first_person2'],
+  ['wave', 'animation.sc.wave'],
+  ['third', 'animation.sc.wield_third_person'],
+  ['defense', 'controller.animation.sc.defense'],
+  ['defense2', 'controller.animation.sc.defense2'],
+  ['move.arms', 'animation.player.move.arms'],
+  ['move.legs', 'animation.player.move.legs'],
+  ['swimming', 'animation.player.swim'],
+  ['swimming.legs', 'animation.player.swim.legs'],
+  ['riding.arms', 'animation.player.riding.arms'],
+  ['riding.legs', 'animation.player.riding.legs'],
+  ['holding', 'animation.player.holding'],
+  ['brandish_spear', 'animation.humanoid.brandish_spear'],
+  ['charging', 'animation.humanoid.charging'],
+  ['attack.positions', 'animation.player.attack.positions'],
+  ['attack.rotations', 'animation.player.attack.rotations'],
+  ['sneaking', 'animation.player.sneaking'],
+  ['bob', 'animation.player.bob'],
+  ['damage_nearby_mobs', 'animation.humanoid.damage_nearby_mobs'],
+  ['bow_and_arrow', 'animation.humanoid.bow_and_arrow'],
+  ['use_item_progress', 'animation.humanoid.use_item_progress'],
+  ['skeleton_attack', 'animation.skeleton.attack'],
+  ['sleeping', 'animation.player.sleeping'],
+  ['first_person_base_pose', 'animation.player.first_person.base_pose'],
+  ['first_person_empty_hand', 'animation.player.first_person.empty_hand'],
+  ['first_person_swap_item', 'animation.player.first_person.swap_item'],
+  ['first_person_attack_controller', 'controller.animation.player.first_person_attack'],
+  ['first_person_attack_rotation', 'animation.player.first_person.attack_rotation'],
+  ['first_person_attack_rotation_item', 'animation.player.first_person.attack_rotation_item'],
+  ['first_person_vr_attack_rotation', 'animation.player.first_person.vr_attack_rotation'],
+  ['first_person_walk', 'animation.player.first_person.walk'],
+  ['first_person_map_controller', 'controller.animation.player.first_person_map'],
+  ['first_person_map_hold', 'animation.player.first_person.map_hold'],
+  ['first_person_map_hold_attack', 'animation.player.first_person.map_hold_attack'],
+  ['first_person_map_hold_off_hand', 'animation.player.first_person.map_hold_off_hand'],
+  ['first_person_map_hold_main_hand', 'animation.player.first_person.map_hold_main_hand'],
+  ['first_person_crossbow_equipped', 'animation.player.first_person.crossbow_equipped'],
+  ['first_person_crossbow_hold', 'animation.player.first_person.crossbow_hold'],
+  ['first_person_breathing_bob', 'animation.player.first_person.breathing_bob'],
+  ['third_person_crossbow_equipped', 'animation.player.crossbow_equipped'],
+  ['third_person_bow_equipped', 'animation.player.bow_equipped'],
+  ['crossbow_hold', 'animation.player.crossbow_hold'],
+  ['crossbow_controller', 'controller.animation.player.crossbow'],
+  ['shield_block_main_hand', 'animation.player.shield_block_main_hand'],
+  ['shield_block_off_hand', 'animation.player.shield_block_off_hand'],
+  ['blink', 'controller.animation.persona.blink'],
+];
+for (const [shortName, animationId] of PLAYER_CLIENT_ANIMATIONS) {
+  player.addClientAnimation(shortName, animationId);
+}
+
 mod.add(player);
 
 // ---------------------------------------------------------------------------

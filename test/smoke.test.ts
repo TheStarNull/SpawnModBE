@@ -806,6 +806,10 @@ function testPlayer() {
   // 深合并：重复写同一组件/事件/脚本不会覆盖，而是递归合并/追加去重。
   player
     .setComponent('minecraft:health', { max: 40, regeneration: 1 })
+    .addHeldItemSensor('route:blade', 'route:on_hold')
+    .addEnvironmentSensor('route:on_in_village', {
+      all_of: [{ test: 'is_in_village', subject: 'self', value: true }],
+    })
     .addComponentGroup('mymod:boost', { 'minecraft:health': { max: 40 } })
     .addEvent('mymod:on_jump', { queue_command: true })
     .addPreAnimation('variable.is_holding_right = 1.0;')
@@ -818,6 +822,11 @@ function testPlayer() {
   assert.equal(bpEnt.description.identifier, 'minecraft:player');
   assert.deepEqual(bpEnt.components['minecraft:type_family'].family, ['player']);
   assert.deepEqual(bpEnt.components['minecraft:health'], { min: 0, max: 40, regeneration: 1 });
+  const sensors = bpEnt.components['minecraft:environment_sensor'] as AnyObj[];
+  assert.equal(sensors.length, 2);
+  assert.equal(sensors[0].on_environment.event, 'route:on_hold');
+  assert.deepEqual(sensors[0].on_environment.filters.all_of[0].value, 'route:blade');
+  assert.equal(sensors[1].on_environment.event, 'route:on_in_village');
   assert.equal(bpEnt.component_groups['mymod:boost']['minecraft:movement'].value, 0.2);
   assert.equal(bpEnt.component_groups['mymod:boost']['minecraft:health'].max, 40);
   const onJump = bpEnt.events['mymod:on_jump'];

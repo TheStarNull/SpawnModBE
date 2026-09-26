@@ -9,6 +9,8 @@
 
 ### Added
 
+- `Player` 新增 `addEnvironmentSensor(event, filters?)` / `addHeldItemSensor(item, event)`：
+  以链式 API 追加 `minecraft:environment_sensor`（如“手持某物品触发事件”）。
 - `example/frostmoon.ts`：霜月之刃示例改为尽量用 API 方法生成 —— 物品走 `mod.item()`，
   玩家覆盖走 `Player` 模块（BP/RP 全部内联配置），闪电 BP/RP 实体、颜色/变体组件组（循环生成）、
   材质、刀模/人体模型、刀持/充能/攻击动画全部改为内联 API 负载；仅闪电关键帧动画/几何、玩家

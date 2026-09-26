@@ -544,7 +544,9 @@ constructor(config: PlayerConfig);
 所有 mutate 方法采用**深合并**语义：对象字段递归合并、数组追加去重、标量覆盖。因此多次
 `setComponent` / `addEvent` / `addPreAnimation` 不会清空旧值。行为包方法：`setSpawnable` /
 `setSummonable` / `setExperimental` / `setComponent` / `addComponentGroup` / `addEvent` /
-`addBehaviorAnimation` / `addBehaviorAnimate`。资源包方法：`setMaterial` / `setTexture` /
+`addBehaviorAnimation` / `addBehaviorAnimate` / `addEnvironmentSensor(event, filters?)` /
+`addHeldItemSensor(item, event)`（追加 `minecraft:environment_sensor`，如“手持某物品触发事件”）。
+资源包方法：`setMaterial` / `setTexture` /
 `setGeometry` / `addRenderController` / `addClientAnimation` / `addClientAnimationController` /
 `addInitialize` / `addPreAnimation` / `addAnimate` / `setScale` / `setScaleX` / `setScaleY` /
 `setScaleZ` / `setSoundEffect` / `setParticleEffect` / `setEnableAttachables` / `setHideArmor`。

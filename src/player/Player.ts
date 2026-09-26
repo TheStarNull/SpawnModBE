@@ -226,6 +226,26 @@ export class Player {
 
   // ---- 行为包（BP）侧 mutate ----
 
+  /**
+   * Appends an `minecraft:environment_sensor` entry. Returns `this`.
+   *
+   * The sensor fires `event` while the player matches `filters` (a whole
+   * `filters` object, e.g. `{ all_of: [...] }`). Omitting `filters` fires
+   * `event` unconditionally on every tick.
+   */
+  addEnvironmentSensor(event: string, filters?: Record<string, unknown>): this {
+    return this.setComponent('minecraft:environment_sensor', [
+      { on_environment: { event, ...(filters ? { filters } : {}) } },
+    ]);
+  }
+
+  /** Adds a sensor that fires `event` while the player holds `item`. Returns `this`. */
+  addHeldItemSensor(item: string, event: string): this {
+    return this.addEnvironmentSensor(event, {
+      all_of: [{ test: 'has_equipment', subject: 'self', value: item }],
+    });
+  }
+
   /** Sets whether the player can be spawned. Returns `this`. */
   setSpawnable(value = true): this { this.behavior.isSpawnable = value; return this; }
   /** Sets whether the player is summonable. Returns `this`. */
