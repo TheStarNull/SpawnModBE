@@ -156,10 +156,14 @@ constructor(config: ResourcePackConfig);
 | `addItemTextures(items, options?)` | 批量，返回 `string[]` |
 | `addItemAssets(item, options?)` | 一键贴图 + 动态模型（若有），返回 `string[]` |
 | `addItemsAssets(items, options?)` | 批量 |
-| `addSound(soundId, soundPath, options?, audioData?)` | 注册音效事件 + 可选 OGG |
+| `addSound(soundId, soundPath, options?, audioData?)` | 注册音效事件 + 可选 OGG；`options` 支持 `category`/`minDistance`/`maxDistance`/`stream`/`volume`/`pitch`/`loadOnLowMemory` |
 | `addRecordSound(disc, audioData?)` | 唱片音效（流式、0.5 音量、64 格距离） |
 | `addClientEntity(entity)` | 写 `entity/<短名>.entity.json` |
 | `addRenderController(controller)` | 写 `render_controllers/<短名>.rc.json` |
+| `addMaterial(material)` | 写 `materials/<文件名>.material`，同名文件合并定义 |
+| `addModel(model, targetPath?)` | 写 `models/entity/<短名>.json`，可指定 `targetPath` |
+| `addAnimation(animation, targetPath?)` | 写 `animations/<短名>.json`，可按 `targetPath` 合并到同一文件（RP 侧） |
+| `addAnimationController(controller, targetPath?)` | 写 `animation_controllers/<短名>.json`，可按 `targetPath` 合并（RP 侧） |
 | `addLang(lang)` | 写 `texts/<locale>.lang`，合并已有条目 |
 | `addUiFile(ui)` / `addUiFiles(files)` | 写 UI 文件并登记到 `ui/_ui_defs.json` |
 | `createUiDefs(defs)` | 覆写 `ui/_ui_defs.json` |
@@ -191,7 +195,7 @@ constructor(config: ResourcePackConfig);
 ```ts
 type Addable =
   | Item | Block
-  | EntityBP | EntityRP | RenderController | SpawnRules
+  | EntityBP | EntityRP | RenderController | SpawnRules | Player
   | Recipe | LootTable | TradeTable
   | UiFile | UiDefs | UiGlobalVariables
   | LangFile | ItemTextureAtlas | Attachable | SoundBatch
@@ -204,6 +208,7 @@ interface DefineSpec {
   items?: Item[];
   blocks?: Block[];
   entities?: (EntityBP | EntityRP | RenderController | SpawnRules)[];
+  players?: Player[];
   recipes?: (Recipe | [Recipe, string?])[];
   loot?: (LootTable | [LootTable, string])[];
   trades?: (TradeTable | [TradeTable, string])[];
@@ -247,6 +252,7 @@ mod.add(
 | `SpawnRules` | `addSpawnRules` | — |
 | `EntityRP` | — | `addClientEntity` |
 | `RenderController` | — | `addRenderController` |
+| `Player` | `addEntity`（`minecraft:player`） | `addClientEntity`（`minecraft:player`） |
 | `Recipe` | `addRecipe` | — |
 | `LootTable` / `TradeTable` | `addLootTable` / `addTradeTable` | — |
 | `UiFile` / `UiDefs` / `UiGlobalVariables` | — | `addUiFile` / `createUiDefs` / `addGlobalVariables` |
@@ -290,7 +296,7 @@ mod.define({
 
 ### 工厂方法
 
-`ModMain` 提供创建即接线的工厂，返回构造出的实例供继续链式配置：`item` / `block` / `entityBP` / `entityRP` / `renderController` / `spawnRules` / `shaped` / `shapeless` / `furnace` / `brewingMix` / `brewingContainer` / `loot(config, path)` / `trade(config, path)` / `ui` / `particle` / `feature` / `featureRule` / `biome` / `fog` / `biomesClient` / `animation` / `animationController` / `dialogue` / `structure` / `structurePlacement` / `scriptApi`。
+`ModMain` 提供创建即接线的工厂，返回构造出的实例供继续链式配置：`item` / `block` / `entityBP` / `entityRP` / `player` / `renderController` / `spawnRules` / `shaped` / `shapeless` / `furnace` / `brewingMix` / `brewingContainer` / `loot(config, path)` / `trade(config, path)` / `ui` / `particle` / `feature` / `featureRule` / `biome` / `fog` / `biomesClient` / `animation` / `animationController` / `dialogue` / `structure` / `structurePlacement` / `scriptApi`。
 
 ---
 
@@ -310,6 +316,7 @@ constructor(config: ItemConfig);
 | --- | --- | --- | --- |
 | `identifier` | `string` | 必填 | 小写 `namespace:name` |
 | `name` | `string?` | 短名 | 游戏内显示名 |
+| `displayName` | `string?` | `name`/短名 | `minecraft:display_name` 的值，可含换行/格式码；用于游戏内富文本显示，不影响 `.lang` 物品名 |
 | `description` | `string?` | — | 描述 |
 | `category` | `ItemCategory` | `'items'` | 创意分类 |
 | `rarity` | `ItemRarity` | `'common'` | 稀有度 |
@@ -493,7 +500,7 @@ const minister = new TradeTable({
 constructor(config: EntityBPConfig);
 ```
 
-字段：`identifier`（必填）、`isSpawnable`（默认 `true`）、`isSummonable`（默认 `true`）、`isExperimental`、`components`、`componentGroups`、`events`、`formatVersion`（默认 `'1.19.40'`）。方法：`setSpawnable` / `setSummonable` / `setExperimental` / `setComponent` / `addComponentGroup` / `addEvent` / `buildJson`。
+字段：`identifier`（必填）、`isSpawnable`（默认 `true`）、`isSummonable`（默认 `true`）、`isExperimental`、`components`、`componentGroups`、`events`、`scripts`（`description.scripts`，含 `animate`）、`animations`（`description.animations` 映射）、`formatVersion`（默认 `'1.19.40'`）。方法：`setSpawnable` / `setSummonable` / `setExperimental` / `setComponent` / `addComponentGroup` / `addEvent` / `buildJson`。
 
 ### `EntityRP` — 资源包（客户端）实体
 
@@ -501,7 +508,7 @@ constructor(config: EntityBPConfig);
 constructor(config: EntityRPConfig);
 ```
 
-字段：`identifier`、`materials`、`textures`、`geometry`、`renderControllers`、`animations`、`animationControllers`、`scripts`、`soundEffects`、`particleEffects`、`spawnEgg`、`enableAttachables`（默认 `true`）、`hideArmor`、`formatVersion`（默认 `'1.10.0'`）。方法：`buildJson()`。
+字段：`identifier`、`materials`、`textures`、`geometry`、`renderControllers`（支持 `string[]` 或带条件的 `Record<string,string>[]`）、`animations`、`animationControllers`、`scripts`、`soundEffects`、`particleEffects`、`spawnEgg`、`enableAttachables`（默认 `true`）、`hideArmor`、`formatVersion`（默认 `'1.10.0'`）。方法：`buildJson()`。
 
 ### `RenderController` — 渲染控制器
 
@@ -509,7 +516,7 @@ constructor(config: EntityRPConfig);
 constructor(config: RenderControllerConfig);
 ```
 
-字段：`id`（必填）、`geometry`（必填）、`materials`（≥1）、`textures`（≥1）、`partVisibility`、`color`、`formatVersion`（默认 `'1.10.0'`）。方法：`buildJson()`。`fileName` 取 `id` 最后一个 `.` 后的部分。
+字段：`id`（必填）、`geometry`（必填）、`materials`（≥1）、`textures`（≥1）、`arrays`（`textures` / `geometries` / `materials` 数组）、`overlayColor`（`overlay_color`）、`lightColorMultiplier`（`light_color_multiplier`）、`ignoreLighting`（`ignore_lighting`）、`partVisibility`、`color`、`formatVersion`（默认 `'1.10.0'`）。方法：`buildJson()`。`fileName` 取 `id` 最后一个 `.` 后的部分。
 
 ### `SpawnRules` — 生成规则
 
@@ -518,6 +525,49 @@ constructor(config: SpawnRulesConfig);
 ```
 
 字段：`identifier`（必填）、`populationControl`、`conditions`（≥1）、`formatVersion`（默认 `'1.8.0'`）。`condition` 支持 `weight`、`herd`、`spawnsOnSurface`、`spawnsUnderground`、`spawnsUnderwater`、`brightness`、`difficulty`、`distance`、`height`、`biomeFilter`、`spawnsAboveBlock`、`spawnsOnBlock`、`spawnsOnBlockPrevented`、`densityLimit`、`permuteType`、`spawnsLava`。方法：`buildJson()`。
+
+### `Player` — 玩家覆盖
+
+```ts
+constructor(config: PlayerConfig);
+```
+
+`Player` 是 `minecraft:player` 的组合式封装，一次同时生成行为包 `entities/player.json`
+（`EntityBP`）与资源包 `entity/player.entity.json`（`EntityRP`）。配置分两侧：
+
+- `behavior`：BP 侧覆盖，支持 `formatVersion`（默认 `'1.19.40'`）、`isSpawnable`、`isSummonable`、
+  `isExperimental`、`components`、`componentGroups`、`events`、`scripts.animate`、`animations`。
+- `client`：RP 侧覆盖，支持 `formatVersion`（默认 `'1.10.0'`）、`materials`、`textures`、`geometry`、
+  `renderControllers`、`animations`、`animationControllers`、`scripts`、`soundEffects`、
+  `particleEffects`、`enableAttachables`（默认 `true`）、`hideArmor`。
+
+所有 mutate 方法采用**深合并**语义：对象字段递归合并、数组追加去重、标量覆盖。因此多次
+`setComponent` / `addEvent` / `addPreAnimation` 不会清空旧值。行为包方法：`setSpawnable` /
+`setSummonable` / `setExperimental` / `setComponent` / `addComponentGroup` / `addEvent` /
+`addBehaviorAnimation` / `addBehaviorAnimate`。资源包方法：`setMaterial` / `setTexture` /
+`setGeometry` / `addRenderController` / `addClientAnimation` / `addClientAnimationController` /
+`addInitialize` / `addPreAnimation` / `addAnimate` / `setScale` / `setScaleX` / `setScaleY` /
+`setScaleZ` / `setSoundEffect` / `setParticleEffect` / `setEnableAttachables` / `setHideArmor`。
+
+`toEntityBP()` / `toEntityRP()` 返回底层实体实例，`buildBehaviorJson()` / `buildClientJson()`
+输出两份 JSON。注意：写入 `entities/player.json` 会**整体覆盖**原版玩家定义；若要“只修改而不丢失
+原版行为”，需在 `behavior` / `client` 里先提供完整的原版定义（例如从已复现的原版文件开始）。
+
+```ts
+const player = new Player({
+  behavior: {
+    components: { 'minecraft:type_family': { family: ['player'] } },
+    events: { 'mymod:on_jump': { add: { component_groups: ['mymod:boost'] } } },
+  },
+  client: {
+    materials: { default: 'entity_alphatest' },
+    textures: { default: 'textures/entity/steve' },
+    geometry: { default: 'geometry.humanoid.custom' },
+    scripts: { pre_animation: ['variable.my = 1.0;'] },
+  },
+});
+mod.add(player);   // → BP entities/player.json + RP entity/player.entity.json
+```
 
 ---
 
@@ -578,6 +628,34 @@ constructor(config: FlipbookTexturesConfig);
 ```
 
 `atlasTile`、`flipbookTexture`（均必填）、`atlasIndex`、`atlasTileVariant`、`ticksPerFrame`（默认 10）、`frames`、`replicate`、`blendFrames`（默认 `true`）。方法：`buildJson()`。
+
+### `Material` — 材质定义（RP `materials/*.material`）
+
+```ts
+const mat = new Material({
+  fileName: 'entity.material',
+  materials: {
+    'script_entity:entity_emissive_alpha': {},
+    'script_entity2:entity_emissive_alpha': { '+defines': ['USE_ONLY_EMISSIVE'] },
+  },
+});
+rp.addMaterial(mat);   // → RP/materials/entity.material
+```
+
+`fileName`（必填）、`materials`（必填，每个定义松散透传，可含 `+defines` 等）、`version`（默认 `'1.0.0'`）。方法：`buildJson()` / `names`。同名文件多次 `addMaterial` 会按材质名合并。
+
+### `EntityModel` — 实体几何模型（RP `models/entity/<短名>.json`）
+
+```ts
+const model = new EntityModel({
+  identifier: 'geometry.sc',
+  description: { texture_width: 16, texture_height: 16 },
+  bones: [{ name: 'rightitem', texture_meshes: [{ local_pivot: [6, 0, 6] }] }],
+});
+rp.addModel(model);   // → RP/models/entity/sc.json
+```
+
+`identifier`（必填）、`description`（可选，`texture_width`/`texture_height`/`visible_bounds_*`）、`bones`（必填，松散透传：`pivot`/`cubes`/`texture_meshes`/每面 `uv` 等）、`formatVersion`（默认 `'1.16.0'`）。方法：`buildJson()` / `fileName`（取标识符最后一段）。
 
 ---
 
@@ -830,6 +908,24 @@ mod.define({ scripts });                              // 统一接线
 
 > `ScriptApiSource` 只是把 `@minecraft/server` 的导入与正文拼成合法 JS 字符串，框架不执行、不
 > 类型检查生成代码；生成逻辑均由用户编写。
+
+### `McFunction` — 命令函数（BP `functions/*.mcfunction`）
+
+```ts
+const yw = new McFunction({
+  name: 'yw',
+  tick: true,                    // 登记到 functions/tick.json，每 tick 执行
+  commands: ['gamerule keepinventory true', 'function yw'],
+});
+bp.addFunction(yw);              // → BP/functions/yw.mcfunction + tick.json
+mod.add(yw);                     // 统一接线也可
+```
+
+`name`（必填，去掉 `.mcfunction` 后缀，可为 `sub/name` 子路径）、`commands`（必填，`string` 或 `string[]`，每行一条命令）、`tick`（默认 `false`）。方法：`source` / `fileName`。`Behavior.addFunction` 会写入 `.mcfunction`；`tick: true` 时把函数名合并进 `functions/tick.json`（去重、不覆盖已有项）。
+
+RP 侧动画也可用 `Resource.addAnimation(animation, 'animations/sc.json')` 与
+`Resource.addAnimationController(controller, 'animation_controllers/player.json')`
+把多个定义合并到同一文件（保留原 addon 的分文件布局）。
 
 ---
 

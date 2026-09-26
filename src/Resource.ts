@@ -30,13 +30,16 @@ import type { Item } from './item/Item.js';
 import { type Attachable } from './rp/Attachable.js';
 import { type BiomesClient } from './rp/BiomesClient.js';
 import { type DynamicItemModel } from './rp/DynamicItemModel.js';
+import { type EntityModel } from './rp/EntityModel.js';
 import { type FlipbookTextures } from './rp/FlipbookTextures.js';
 import { type FrameSequence } from './rp/FrameSequence.js';
 import { type ItemTextureAtlas } from './rp/ItemTextureAtlas.js';
 import { type LangFile } from './rp/LangFile.js';
+import { type Material } from './rp/Material.js';
 import { type SoundBatch } from './rp/SoundBatch.js';
 import { type Fog } from './fog/index.js';
 import { type Particle } from './particle/index.js';
+import { type Animation, type AnimationController } from './animation/index.js';
 import { type UiDefs } from './ui/UiDefs.js';
 import { type UiFile } from './ui/UiFile.js';
 import { type UiGlobalVariables } from './ui/UiGlobalVariables.js';
@@ -249,14 +252,18 @@ export class Resource extends PackBase {
       ...(options?.stream !== undefined ? { stream: options.stream } : {}),
       ...(options?.volume !== undefined ? { volume: options.volume } : {}),
       ...(options?.pitch !== undefined ? { pitch: options.pitch } : {}),
-      ...(options?.loadOnLowMemory !== undefined
-        ? { load_on_low_memory: options.loadOnLowMemory }
-        : {}),
     };
 
     const event: SoundEventDefinition = {
       ...(options?.maxDistance !== undefined
         ? { max_distance: options.maxDistance }
+        : {}),
+      ...(options?.minDistance !== undefined
+        ? { min_distance: options.minDistance }
+        : {}),
+      ...(options?.category !== undefined ? { category: options.category } : {}),
+      ...(options?.loadOnLowMemory !== undefined
+        ? { load_on_low_memory: options.loadOnLowMemory }
         : {}),
       sounds: [sound],
     };
@@ -428,6 +435,131 @@ export class Resource extends PackBase {
   }
 
   /**
+   * Adds a material definition file to the resource pack.
+   *
+   * Writes the material JSON to `materials/<fileName>` (e.g. `entity.material`).
+   * Multiple {@link Material} instances targeting the same file name merge their
+   * definitions (later calls win per material name), so a shared
+   * `materials/entity.material` can be extended from several places.
+   *
+   * @param material The material definitions.
+   * @returns The pack-relative path that was written.
+   */
+  addMaterial(material: Material): string {
+    const path = `materials/${material.fileName}`;
+    const build = material.buildJson() as { materials: Record<string, unknown> };
+    const merged: Record<string, unknown> = { ...build.materials };
+    const existing = this.getFile(path);
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing.toString('utf8')) as {
+          materials?: Record<string, unknown>;
+        };
+        if (parsed && typeof parsed === 'object' && parsed.materials) {
+          Object.assign(merged, parsed.materials);
+        }
+      } catch {
+        // Malformed existing file → replace with the incoming definitions.
+      }
+    }
+    this.addFile(path, JSON.stringify({ materials: merged }, null, 2));
+    return path;
+  }
+
+  /**
+   * Adds an entity geometry model to the resource pack.
+   *
+   * Writes the geometry JSON to `models/entity/<shortName>.json`.
+   *
+   * @param model The geometry model.
+   * @param targetPath Optional explicit pack path (defaults to
+   * `'models/entity/<shortName>.json'`).
+   * @returns The pack-relative path that was written.
+   */
+  addModel(model: EntityModel, targetPath?: string): string {
+    const path = targetPath ?? `models/entity/${model.fileName}`;
+    this.addNewFile(path, JSON.stringify(model.buildJson(), null, 2), `EntityModel ${model.identifier}`);
+    return path;
+  }
+
+  /**
+   * Adds an entity / attachable animation to the resource pack.
+   *
+   * Writes the animation JSON to `animations/<fileName>`. When `targetPath` is
+   * given (e.g. `'animations/sc.json'`) the animation is merged into that file
+   * under its identifier, so several animations can share one vanilla-style
+   * animation file.
+   *
+   * @param animation The animation definition.
+   * @param targetPath Optional explicit pack path (defaults to
+   * `'animations/<shortName>.json'`).
+   * @returns The pack-relative path that was written.
+   */
+  addAnimation(animation: Animation, targetPath?: string): string {
+    const path = targetPath ?? `animations/${animation.fileName}`;
+    const [merged, formatVersion] = this.readNamedMap(path, 'animations', animation.config.formatVersion);
+    const built = animation.buildJson().animations as Record<string, unknown>;
+    merged[animation.identifier] = built[animation.identifier];
+    this.addFile(path, JSON.stringify({ format_version: formatVersion, animations: merged }, null, 2));
+    return path;
+  }
+
+  /**
+   * Adds an animation controller to the resource pack.
+   *
+   * Writes the controller JSON to `animation_controllers/<fileName>`. When
+   * `targetPath` is given the controller is merged into that file under its
+   * identifier.
+   *
+   * @param controller The animation controller definition.
+   * @param targetPath Optional explicit pack path (defaults to
+   * `'animation_controllers/<shortName>.json'`).
+   * @returns The pack-relative path that was written.
+   */
+  addAnimationController(controller: AnimationController, targetPath?: string): string {
+    const path = targetPath ?? `animation_controllers/${controller.fileName}`;
+    const [merged, formatVersion] = this.readNamedMap(
+      path,
+      'animation_controllers',
+      controller.config.formatVersion
+    );
+    const built = controller.buildJson().animation_controllers as Record<string, unknown>;
+    merged[controller.identifier] = built[controller.identifier];
+    this.addFile(
+      path,
+      JSON.stringify({ format_version: formatVersion, animation_controllers: merged }, null, 2)
+    );
+    return path;
+  }
+
+  /**
+   * Reads a `{ format_version, <key>: {…} }` map file, or a fresh map when the
+   * file is missing. Keeps the existing `format_version` when present.
+   */
+  private readNamedMap(
+    path: string,
+    key: string,
+    fallbackFormatVersion: string
+  ): [Record<string, unknown>, string] {
+    const file = this.getFile(path);
+    if (file) {
+      try {
+        const parsed = JSON.parse(file.toString('utf8')) as {
+          format_version?: string;
+          [k: string]: unknown;
+        };
+        if (parsed && typeof parsed === 'object') {
+          const map = (parsed[key] ?? {}) as Record<string, unknown>;
+          return [map, parsed.format_version ?? fallbackFormatVersion];
+        }
+      } catch {
+        // Malformed existing file → start fresh.
+      }
+    }
+    return [{}, fallbackFormatVersion];
+  }
+
+  /**
    * Adds a `.lang` localization file to the pack.
    *
    * Lang files go under `texts/<locale>.lang`.
@@ -566,7 +698,10 @@ export class Resource extends PackBase {
     const locale = options?.locale ?? 'en_US';
     const langPath = `texts/${locale}.lang`;
     const key = `item.${item.identifier}.name`;
-    const value = name ?? item.displayName;
+    // The `.lang` entry takes the simple item name. The rich display text
+    // (`minecraft:display_name`, which may contain newlines/format codes) is
+    // handled by the item component, not the localization file.
+    const value = name ?? item.config.name ?? item.shortName;
     const existing = this.getFile(langPath)?.toString('utf8') ?? '';
     const lines = existing.length > 0 ? existing.split('\n') : [];
     const filtered = lines.filter((l) => !l.startsWith(`${key}=`));

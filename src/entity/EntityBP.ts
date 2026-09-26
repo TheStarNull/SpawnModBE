@@ -43,6 +43,10 @@ export interface EntityDescription {
   is_summonable?: boolean;
   /** Whether the entity is experimental. */
   is_experimental?: boolean;
+  /** Entity description scripts (e.g. `animate` list). */
+  scripts?: { animate?: Array<string | Record<string, unknown>> };
+  /** Entity description animations mapping (shortname → animation id). */
+  animations?: Record<string, string>;
 }
 
 /** Configuration accepted by {@link EntityBP}. */
@@ -55,6 +59,10 @@ export interface EntityBPConfig {
   isSummonable?: boolean;
   /** Whether the entity requires an experiment toggle. */
   isExperimental?: boolean;
+  /** Entity description scripts (e.g. `animate` list). */
+  scripts?: { animate?: Array<string | Record<string, unknown>> };
+  /** Entity description animations mapping (shortname → animation id). */
+  animations?: Record<string, string>;
   /** The entity's runtime components. */
   components?: Record<string, unknown>;
   /** Named component groups. */
@@ -72,6 +80,8 @@ export interface ResolvedEntityBPConfig {
   isSpawnable: boolean;
   isSummonable: boolean;
   isExperimental: boolean;
+  scripts?: { animate?: Array<string | Record<string, unknown>> };
+  animations?: Record<string, string>;
   components: Record<string, unknown>;
   componentGroups: Record<string, ComponentGroup>;
   events: Record<string, EntityEvent>;
@@ -90,6 +100,8 @@ export class EntityBP {
       isSpawnable: config.isSpawnable ?? true,
       isSummonable: config.isSummonable ?? true,
       isExperimental: config.isExperimental ?? false,
+      scripts: config.scripts,
+      animations: config.animations,
       components: config.components ?? {},
       componentGroups: config.componentGroups ?? {},
       events: config.events ?? {},
@@ -154,6 +166,12 @@ export class EntityBP {
     if (this.config.isSpawnable) description.is_spawnable = true;
     if (this.config.isSummonable) description.is_summonable = true;
     if (this.config.isExperimental) description.is_experimental = true;
+    if (this.config.scripts && Object.keys(this.config.scripts).length > 0) {
+      description.scripts = this.config.scripts;
+    }
+    if (this.config.animations && Object.keys(this.config.animations).length > 0) {
+      description.animations = this.config.animations;
+    }
 
     return {
       format_version: this.config.formatVersion,

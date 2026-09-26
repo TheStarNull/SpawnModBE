@@ -64,6 +64,7 @@ import {
   killedByPlayer,
   setCount,
   Particle,
+  Player,
   Feature,
   FeatureRule,
   Biome,
@@ -92,6 +93,9 @@ import {
   ScriptFile,
   fetchScriptsOfType,
   SERVER_MODULE,
+  McFunction,
+  Material,
+  EntityModel,
 } from '../src/index.js';
 import { runCli } from '../src/cli.js';
 import type { Addable as AddableType } from '../src/routing.js';
@@ -486,6 +490,20 @@ function testSoundSystem() {
   assert.ok(defs2.sound_definitions['mymod:whoosh'], 'first event kept');
   assert.ok(defs2.sound_definitions['mymod:ding'], 'second event added');
 
+  // 2b) Event-level category / min_distance / load_on_low_memory.
+  rp.addSound('mymod:boom', 'sounds/mymod/boom', {
+    category: 'hostile',
+    minDistance: 100,
+    loadOnLowMemory: true,
+  });
+  const defsBoom = JSON.parse(
+    rp.getFile('sounds/sound_definitions.json')!.toString()
+  ) as { sound_definitions: Record<string, AnyObj> };
+  const boom = defsBoom.sound_definitions['mymod:boom'] as AnyObj;
+  assert.equal(boom.category, 'hostile');
+  assert.equal(boom.min_distance, 100);
+  assert.equal(boom.load_on_low_memory, true);
+
   // 3) addRecordSound ties a RecordDisc's soundEvent to a sound definition.
   const rp2 = new Resource({ name: 'Record Sound Test', uuid: { seed: 'record-sound-test' } });
   const disc = new RecordDisc({
@@ -763,6 +781,80 @@ function testEntityIntegration() {
   assert.ok(mod.resource.hasFile('entity/goblin.entity.json'));
   assert.ok(mod.resource.hasFile('render_controllers/goblin.rc.json'));
   console.log('[ok] Entity BP/RP + spawn rules + RC integrate');
+}
+
+function testPlayer() {
+  const player = new Player({
+    behavior: {
+      components: {
+        'minecraft:type_family': { family: ['player'] },
+        'minecraft:health': { min: 0, max: 20 },
+      },
+      componentGroups: { 'mymod:boost': { 'minecraft:movement': { value: 0.2 } } },
+      events: { 'mymod:on_jump': { add: { component_groups: ['mymod:boost'] } } },
+    },
+    client: {
+      materials: { default: 'entity_alphatest' },
+      textures: { default: 'textures/entity/steve' },
+      geometry: { default: 'geometry.humanoid.custom' },
+      renderControllers: ['controller.render.player.base'],
+      animations: { humanoid_base_pose: 'animation.humanoid.base_pose' },
+      scripts: { pre_animation: ['variable.is_holding_right = 0.0;'] },
+    },
+  });
+
+  // 深合并：重复写同一组件/事件/脚本不会覆盖，而是递归合并/追加去重。
+  player
+    .setComponent('minecraft:health', { max: 40, regeneration: 1 })
+    .addComponentGroup('mymod:boost', { 'minecraft:health': { max: 40 } })
+    .addEvent('mymod:on_jump', { queue_command: true })
+    .addPreAnimation('variable.is_holding_right = 1.0;')
+    .addPreAnimation('variable.is_holding_right = 1.0;')
+    .addRenderController('controller.render.player.first_person')
+    .addRenderController('controller.render.player.first_person');
+
+  const bpJson = player.buildBehaviorJson() as AnyObj;
+  const bpEnt = bpJson['minecraft:entity'];
+  assert.equal(bpEnt.description.identifier, 'minecraft:player');
+  assert.deepEqual(bpEnt.components['minecraft:type_family'].family, ['player']);
+  assert.deepEqual(bpEnt.components['minecraft:health'], { min: 0, max: 40, regeneration: 1 });
+  assert.equal(bpEnt.component_groups['mymod:boost']['minecraft:movement'].value, 0.2);
+  assert.equal(bpEnt.component_groups['mymod:boost']['minecraft:health'].max, 40);
+  const onJump = bpEnt.events['mymod:on_jump'];
+  assert.deepEqual(onJump.add.component_groups, ['mymod:boost']);
+  assert.equal(onJump.queue_command, true);
+
+  const rpJson = player.buildClientJson() as AnyObj;
+  const rpDesc = rpJson['minecraft:client_entity'].description;
+  assert.equal(rpDesc.identifier, 'minecraft:player');
+  assert.deepEqual(rpDesc.render_controllers, [
+    'controller.render.player.base',
+    'controller.render.player.first_person',
+  ]);
+  assert.deepEqual(rpDesc.scripts.pre_animation, [
+    'variable.is_holding_right = 0.0;',
+    'variable.is_holding_right = 1.0;',
+  ]);
+  assert.equal(player.behaviorFileName, 'player.json');
+  assert.equal(player.clientFileName, 'player.entity.json');
+  assert.equal(player.toEntityBP().identifier, 'minecraft:player');
+  assert.equal(player.toEntityRP().identifier, 'minecraft:player');
+
+  // 路由：mod.add(player) 一次写 BP entities/player.json + RP entity/player.entity.json。
+  const mod = new ModMain({ name: 'Player Mod', sapi: 'scripts/main.js', uuid: { seed: 'player-mod-test' } });
+  mod.add(player);
+  assert.ok(mod.behavior!.hasFile('entities/player.json'));
+  assert.ok(mod.resource.hasFile('entity/player.entity.json'));
+  const written = JSON.parse(mod.behavior!.getFile('entities/player.json')!.toString()) as AnyObj;
+  assert.equal(written['minecraft:entity'].description.identifier, 'minecraft:player', 'player default identifier');
+
+  // 工厂：mod.player(config) 创建即接线。
+  const mod2 = new ModMain({ name: 'Player Factory', sapi: 'scripts/main.js', uuid: { seed: 'player-factory-test' } });
+  const factoryPlayer = mod2.player({ client: { materials: { default: 'entity_alphatest' } } });
+  assert.ok(factoryPlayer instanceof Player);
+  assert.ok(mod2.behavior!.hasFile('entities/player.json'));
+  assert.ok(mod2.resource.hasFile('entity/player.entity.json'));
+  console.log('[ok] Player deep-merges BP/RP overrides and routes both packs');
 }
 
 function testLangFile() {
@@ -1910,6 +2002,113 @@ function testScriptApi() {
   console.log('[ok] Script API helpers generate script files on the behavior pack');
 }
 
+function testMcFunction() {
+  const fn = new McFunction({ name: 'yw', tick: true, commands: ['gamerule keepinventory true', 'function yw'] });
+  assert.equal(fn.name, 'yw');
+  assert.equal(fn.fileName, 'yw');
+  assert.ok(fn.source.includes('gamerule keepinventory true'));
+  assert.equal(fn.tick, true);
+
+  const bp = new Behavior({ name: 'Func', author: 'a', version: [1, 0, 0], uuid: { seed: 'func-bp' } });
+  assert.equal(bp.addFunction(fn), 'functions/yw.mcfunction');
+  assert.ok(bp.hasFile('functions/yw.mcfunction'));
+  const tick = JSON.parse(bp.getFile('functions/tick.json')!.toString()) as AnyObj;
+  assert.deepStrictEqual(tick.values, ['yw']);
+
+  // Adding a second tick function merges without clobbering.
+  bp.addFunction(new McFunction({ name: 'boss/phase1', tick: true, commands: ['say phase 1'] }));
+  const tick2 = JSON.parse(bp.getFile('functions/tick.json')!.toString()) as AnyObj;
+  assert.deepStrictEqual(tick2.values, ['yw', 'boss/phase1']);
+  // Re-adding the same function is idempotent, and its tick entry is deduped.
+  assert.doesNotThrow(() =>
+    bp.addFunction(new McFunction({ name: 'yw', tick: true, commands: ['gamerule keepinventory true', 'function yw'] }))
+  );
+  const tick3 = JSON.parse(bp.getFile('functions/tick.json')!.toString()) as AnyObj;
+  assert.deepStrictEqual(tick3.values, ['yw', 'boss/phase1']);
+
+  // Routing + factory + define.
+  const mod = new ModMain({ name: 'FuncFactory', sapi: 'scripts/main.js', uuid: { seed: 'func-factory' } });
+  const f2 = mod.mcFunction({ name: 'a/b', commands: ['say hi'] });
+  assert.ok(f2 instanceof McFunction && mod.behavior!.hasFile('functions/a/b.mcfunction'), 'mcFunction factory wires');
+  mod.define({ functions: [new McFunction({ name: 'c', commands: ['say c'] })] });
+  assert.ok(mod.behavior!.hasFile('functions/c.mcfunction'), 'define({ functions }) routes');
+  mod.add(new McFunction({ name: 'd', tick: true, commands: ['say d'] }));
+  const tickD = JSON.parse(mod.behavior!.getFile('functions/tick.json')!.toString()) as AnyObj;
+  assert.ok(tickD.values.includes('d'), 'mod.add routes McFunction with tick');
+  console.log('[ok] McFunction generates .mcfunction files and tick.json');
+}
+
+function testRpMaterialAndModel() {
+  // Material module.
+  const mat = new Material({
+    fileName: 'entity.material',
+    materials: {
+      'script_entity:entity_emissive_alpha': {},
+      'script_entity2:entity_emissive_alpha': { '+defines': ['USE_ONLY_EMISSIVE'] },
+    },
+  });
+  assert.deepStrictEqual(mat.names, ['script_entity:entity_emissive_alpha', 'script_entity2:entity_emissive_alpha']);
+  const rp = new Resource({ name: 'Mat', uuid: { seed: 'mat-rp' } });
+  assert.equal(rp.addMaterial(mat), 'materials/entity.material');
+  const matJson = JSON.parse(rp.getFile('materials/entity.material')!.toString()) as AnyObj;
+  assert.equal(matJson.materials.version, '1.0.0');
+  assert.deepStrictEqual(matJson.materials['script_entity2:entity_emissive_alpha'], { '+defines': ['USE_ONLY_EMISSIVE'] });
+
+  // Merging a second Material into the same file keeps both definitions.
+  rp.addMaterial(new Material({ fileName: 'entity.material', materials: { 'extra:glow': {} } }));
+  const matJson2 = JSON.parse(rp.getFile('materials/entity.material')!.toString()) as AnyObj;
+  assert.ok(matJson2.materials['script_entity:entity_emissive_alpha'], 'first def kept after merge');
+  assert.ok(matJson2.materials['extra:glow'], 'second def merged');
+
+  // EntityModel module.
+  const model = new EntityModel({
+    identifier: 'geometry.sc',
+    description: { texture_width: 16, texture_height: 16 },
+    bones: [{ name: 'rightitem', texture_meshes: [{ local_pivot: [6, 0, 6] }] }],
+  });
+  assert.equal(model.fileName, 'sc.json');
+  const rp2 = new Resource({ name: 'Model', uuid: { seed: 'model-rp' } });
+  assert.equal(rp2.addModel(model), 'models/entity/sc.json');
+  const geo = JSON.parse(rp2.getFile('models/entity/sc.json')!.toString()) as AnyObj;
+  assert.equal(geo['minecraft:geometry'][0].description.identifier, 'geometry.sc');
+  assert.equal(geo['minecraft:geometry'][0].bones[0].name, 'rightitem');
+
+  // Routing + factories + define.
+  const mod = new ModMain({ name: 'MatModel', uuid: { seed: 'matmodel' } });
+  const m1 = mod.material({ fileName: 'entity.material', materials: { a: {} } });
+  const m2 = mod.entityModel({ identifier: 'geometry.rl', bones: [] });
+  assert.ok(m1 instanceof Material && mod.resource.hasFile('materials/entity.material'), 'material factory wires');
+  assert.ok(m2 instanceof EntityModel && mod.resource.hasFile('models/entity/rl.json'), 'entityModel factory wires');
+  mod.define({ materials: [new Material({ fileName: 'other.material', materials: { b: {} } })], models: [new EntityModel({ identifier: 'geometry.x', bones: [] })] });
+  assert.ok(mod.resource.hasFile('materials/other.material'), 'define({ materials }) routes');
+  assert.ok(mod.resource.hasFile('models/entity/x.json'), 'define({ models }) routes');
+  mod.add(new Material({ fileName: 'third.material', materials: { c: {} } }), new EntityModel({ identifier: 'geometry.y', bones: [] }));
+  assert.ok(mod.resource.hasFile('materials/third.material'), 'mod.add routes Material');
+  assert.ok(mod.resource.hasFile('models/entity/y.json'), 'mod.add routes EntityModel');
+  console.log('[ok] Material / EntityModel generate RP materials and geometry');
+}
+
+function testResourceAnimationMerge() {
+  const rp = new Resource({ name: 'RPAnim', uuid: { seed: 'rp-anim' } });
+  const a1 = new Animation({ identifier: 'animation.wield', loop: true, body: { bones: {} }, formatVersion: '1.8.0' });
+  const a2 = new Animation({ identifier: 'animation.charging', loop: true, body: { bones: {} }, formatVersion: '1.8.0' });
+  assert.equal(rp.addAnimation(a1, 'animations/sc.json'), 'animations/sc.json');
+  rp.addAnimation(a2, 'animations/sc.json');
+  const file = JSON.parse(rp.getFile('animations/sc.json')!.toString()) as AnyObj;
+  assert.equal(file.format_version, '1.8.0');
+  assert.ok(file.animations['animation.wield']);
+  assert.ok(file.animations['animation.charging']);
+
+  const c1 = new AnimationController({ identifier: 'controller.a', states: { default: {} }, formatVersion: '1.10.0' });
+  const c2 = new AnimationController({ identifier: 'controller.b', states: { default: {} }, formatVersion: '1.10.0' });
+  rp.addAnimationController(c1, 'animation_controllers/player.json');
+  rp.addAnimationController(c2, 'animation_controllers/player.json');
+  const cfile = JSON.parse(rp.getFile('animation_controllers/player.json')!.toString()) as AnyObj;
+  assert.ok(cfile.animation_controllers['controller.a']);
+  assert.ok(cfile.animation_controllers['controller.b']);
+  console.log('[ok] Resource.addAnimation / addAnimationController merge into one file');
+}
+
 async function testFetchScripts() {
   const dir = await mkdtempFs(joinPath(tmpdirOs(), 'sapi-'));
   await mkdirFs(joinPath(dir, 'sub'), { recursive: true });
@@ -2274,6 +2473,7 @@ testEntityBP();
 testEntityRPAndRenderController();
 testSpawnRules();
 testEntityIntegration();
+testPlayer();
 testLangFile();
 testItemTextureAtlas();
 testAttachable();
@@ -2315,6 +2515,9 @@ testDialogue();
 testStructure();
 testStructurePlacement();
 testScriptApi();
+testMcFunction();
+testRpMaterialAndModel();
+testResourceAnimationMerge();
 await testFetchScripts();
 testAddItemName();
 testRoutingItems();

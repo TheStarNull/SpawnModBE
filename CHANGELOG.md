@@ -5,6 +5,44 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+
+- `Player` 模块（`mod.player()`）：对 `minecraft:player` 的组合式覆盖，同时生成 BP
+  `entities/player.json` 与 RP `entity/player.entity.json`，setter 采用深合并/追加去重语义。
+- `Item.displayName`：写入 `minecraft:display_name` 的富文本值（可含换行/格式码），
+  与 `.lang` 物品名（`name`）解耦。
+- `EntityBP` 的 `scripts` / `animations`：透传 `description.scripts` 与
+  `description.animations`（例如覆盖 `minecraft:player` 时保留动画绑定）。
+- `EntityRP.renderControllers`：支持带条件的对象形式
+  （`Array<string | Record<string, string>>`）。
+- `RenderController` 的 `arrays` / `overlayColor` / `lightColorMultiplier` /
+  `ignoreLighting`：支持动画贴图数组、`overlay_color`、
+  `light_color_multiplier`、`ignore_lighting`。
+- `Resource.addItemName`：`.lang` 物品名回退使用 `config.name` / 短名，而非富文本
+  `displayName`，避免换行破坏 `texts/<locale>.lang`。
+- 命令函数模块（`McFunction`：BP `functions/*.mcfunction`；`tick: true` 自动登记
+  `functions/tick.json`，去重合并）。
+- 材质模块（`Material`：RP `materials/*.material`，同名文件按材质名合并）。
+- 实体几何模型模块（`EntityModel`：RP `models/entity/<短名>.json`，bones 松散透传）。
+- `Resource.addAnimation` / `addAnimationController`：RP 侧动画/控制器写入，支持
+  `targetPath` 把多个定义合并到同一文件。
+- `addSound` 选项新增 `category` / `minDistance`，并把 `load_on_low_memory` 改为事件级
+  （更贴近 vanilla `sound_definitions` schema）。
+- 示例：`example/frostmoon.ts` 用 API 复现「霜月之刃」addon 并升级到引擎
+  1.26.50，且所有内容类型均通过框架模块生成（仅二进制贴图经 `addDirectory`）。
+- 霜月示例的 1.26.50 兼容性修复：SAPI 脚本 `runCommandAsync` → `runCommand`
+  （2.x 已移除前者）；物品补 `minecraft:use_modifiers.use_duration`（消除
+  `minecraft:food` 缺失 `use_duration` 的警告）；玩家实体 `has_equipment` 的
+  `as:yw_sword` → `yw:yw_sword`；玩家客户端实体 `initialize` 补
+  `variable.first_person_item_rotation_factor` 初始化（消除 MoLang 未处理变量报错）。
+- 霜月示例的动画修复：玩家客户端实体 `pre_animation` 补
+  `variable.attack_time = query.attack_time;` 与逐帧更新的
+  `variable.first_person_item_rotation_factor`——此前 `variable.attack_time`
+  从未赋值（恒 0），导致 `first_person_attack_controller` 条件
+  `variable.attack_time > 0.0f` 永远为假，空手攻击/挥舞动画消失。
+
 ## [1.0.0] - 2026-09-25
 
 ### Added

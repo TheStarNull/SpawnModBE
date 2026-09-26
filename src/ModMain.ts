@@ -39,7 +39,9 @@ import { Animation, AnimationController } from './animation/index.js';
 import { Dialogue } from './dialogue/index.js';
 import { ScriptApiSource, ScriptFile } from './script/index.js';
 import { Structure, StructurePlacement } from './structure/index.js';
-import { BiomesClient } from './rp/index.js';
+import { BiomesClient, EntityModel, Material } from './rp/index.js';
+import { McFunction } from './function/index.js';
+import { Player } from './player/index.js';
 import { BrewingContainer, BrewingMix, Furnace, Shaped, Shapeless } from './recipe/index.js';
 import { LootTable } from './loot/index.js';
 import { packFolderName } from './pack.js';
@@ -49,6 +51,7 @@ import { UiFile } from './ui/index.js';
 import type { BiomeConfig } from './biome/index.js';
 import type { BlockConfig } from './block/index.js';
 import type { EntityBPConfig, EntityRPConfig, RenderControllerConfig, SpawnRulesConfig } from './entity/index.js';
+import type { PlayerConfig } from './player/index.js';
 import type { FeatureConfig, FeatureRuleConfig } from './feature/index.js';
 import type { FogConfig } from './fog/index.js';
 import type { ItemConfig } from './item/index.js';
@@ -61,6 +64,8 @@ import type { LootTableConfig } from './loot/index.js';
 import type { TradeTableConfig } from './trade/index.js';
 import type { UiFileConfig } from './ui/index.js';
 import type { BiomesClientConfig } from './rp/index.js';
+import type { EntityModelConfig, MaterialConfig } from './rp/index.js';
+import type { McFunctionConfig } from './function/index.js';
 import type {
   BehaviorPackManifest,
   ModBuildResult,
@@ -337,6 +342,7 @@ export class ModMain {
       ...(spec.items ?? []),
       ...(spec.blocks ?? []),
       ...(spec.entities ?? []),
+      ...(spec.players ?? []),
       ...(spec.recipes ?? []),
       ...(spec.loot ?? []),
       ...(spec.trades ?? []),
@@ -352,6 +358,9 @@ export class ModMain {
       ...(spec.structures ?? []),
       ...(spec.structurePlacements ?? []),
       ...(spec.scripts ?? []),
+      ...(spec.functions ?? []),
+      ...(spec.materials ?? []),
+      ...(spec.models ?? []),
       ...(spec.rp ?? []),
     ]);
     return this;
@@ -365,6 +374,8 @@ export class ModMain {
   entityBP(config: EntityBPConfig): EntityBP { return this.addAndReturn(new EntityBP(config)); }
   /** Constructs + wires an {@link EntityRP}. */
   entityRP(config: EntityRPConfig): EntityRP { return this.addAndReturn(new EntityRP(config)); }
+  /** Constructs + wires a {@link Player} (`minecraft:player` BP + RP override, 深合并). */
+  player(config: PlayerConfig): Player { return this.addAndReturn(new Player(config)); }
   /** Constructs + wires a {@link RenderController}. */
   renderController(config: RenderControllerConfig): RenderController { return this.addAndReturn(new RenderController(config)); }
   /** Constructs + wires {@link SpawnRules}. */
@@ -409,6 +420,12 @@ export class ModMain {
   structure(config: StructureConfig): Structure { return this.addAndReturn(new Structure(config)); }
   /** Constructs + wires a {@link StructurePlacement} feature. */
   structurePlacement(config: StructurePlacementConfig): StructurePlacement { return this.addAndReturn(new StructurePlacement(config)); }
+  /** Constructs + wires a {@link McFunction} (BP `functions/*.mcfunction`, optional `tick.json`). */
+  mcFunction(config: McFunctionConfig): McFunction { return this.addAndReturn(new McFunction(config)); }
+  /** Constructs + wires a {@link Material} (RP `materials/*.material`). */
+  material(config: MaterialConfig): Material { return this.addAndReturn(new Material(config)); }
+  /** Constructs + wires an {@link EntityModel} (RP `models/entity/*.json`). */
+  entityModel(config: EntityModelConfig): EntityModel { return this.addAndReturn(new EntityModel(config)); }
 
   private addAndReturn<T extends object>(instance: T, path?: string): T {
     if (path !== undefined) this.add(instance as Addable, path);

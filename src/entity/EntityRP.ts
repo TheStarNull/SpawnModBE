@@ -36,8 +36,11 @@ export interface EntityRPConfig {
   textures?: Record<string, string>;
   /** Geometry shortname definitions, e.g. `{ default: 'geometry.goblin' }`. */
   geometry?: Record<string, string>;
-  /** Render controller identifiers used by this entity. */
-  renderControllers?: string[];
+  /**
+   * Render controller identifiers used by this entity, or condition objects
+   * `{ 'controller.render.x': 'molang condition' }` for conditional rendering.
+   */
+  renderControllers?: Array<string | Record<string, string>>;
   /** Animation shortname definitions. */
   animations?: Record<string, string>;
   /** Animation controller shortnames. */
@@ -79,7 +82,7 @@ export interface ResolvedEntityRPConfig {
   materials: Record<string, string>;
   textures: Record<string, string>;
   geometry: Record<string, string>;
-  renderControllers: string[];
+  renderControllers: Array<string | Record<string, string>>;
   animations: Record<string, string>;
   animationControllers: Record<string, string>;
   scripts: EntityRPConfig['scripts'];

@@ -48,6 +48,16 @@ export { Fog } from './fog/index.js';
 export type { FogConfig, FogDistanceLayer, ResolvedFogConfig, ResolvedFogDistanceLayer } from './fog/index.js';
 export { Animation, animationShortName } from './animation/index.js';
 export type { AnimationConfig, ResolvedAnimationConfig } from './animation/index.js';
+export { Player } from './player/index.js';
+export type {
+  PlayerBehaviorConfig,
+  PlayerClientConfig,
+  PlayerClientScripts,
+  PlayerComponentGroup,
+  PlayerConfig,
+  ResolvedPlayerBehaviorConfig,
+  ResolvedPlayerClientConfig,
+} from './player/index.js';
 export { AnimationController, state, transition } from './animation/index.js';
 export type { AnimationControllerConfig, ResolvedAnimationControllerConfig, StateOptions } from './animation/index.js';
 export { Dialogue, dialogueButton, scene } from './dialogue/index.js';
@@ -58,6 +68,8 @@ export { StructurePlacement } from './structure/index.js';
 export type { ResolvedStructurePlacementConfig, StructurePlacementConfig, StructureTransform } from './structure/index.js';
 export { SERVER_MODULE, ScriptApiSource, ScriptFile, fetchScriptsOfType } from './script/index.js';
 export type { ResolvedScriptApiSourceOptions, ScriptApiSourceOptions } from './script/index.js';
+export { McFunction } from './function/index.js';
+export type { McFunctionConfig } from './function/index.js';
 export type {
   BlockBox,
   BlockBoxVec,
@@ -125,6 +137,8 @@ export {
   FrameSequence,
   FlipbookTextures,
   BiomesClient,
+  Material,
+  EntityModel,
   BIOMES_CLIENT_PATH,
   buildBiomeClientEntry,
 } from './rp/index.js';
@@ -153,6 +167,10 @@ export type {
   BiomesClientConfig,
   ClientColor,
   ResolvedBiomeClientEntry,
+  MaterialConfig,
+  ResolvedMaterialConfig,
+  EntityModelConfig,
+  ResolvedEntityModelConfig,
 } from './rp/index.js';
 export {
   UiFile,

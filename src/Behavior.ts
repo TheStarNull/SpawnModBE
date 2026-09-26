@@ -32,6 +32,7 @@ import { type Animation, type AnimationController } from './animation/index.js';
 import { type Dialogue } from './dialogue/index.js';
 import { type Structure, type StructurePlacement } from './structure/index.js';
 import { type ScriptFile } from './script/index.js';
+import { type McFunction } from './function/index.js';
 import { buildHeader, packFolderName, PackBase, resolvePackConfig } from './pack.js';
 import { type Biome } from './biome/index.js';
 import { type Feature, type FeatureRule } from './feature/index.js';
@@ -336,6 +337,46 @@ export class Behavior extends PackBase {
     const path = `scripts/${file.path}`;
     this.addFile(path, file.source);
     return path;
+  }
+
+  /**
+   * Adds a command function to the behavior pack.
+   *
+   * Writes the function to `functions/<name>.mcfunction`. When the function is
+   * marked as a tick function (`tick: true`), its name is registered in
+   * `functions/tick.json` (merged, deduplicated) so the game runs it every tick.
+   *
+   * @param fn The function definition.
+   * @returns The pack-relative path that was written (`functions/<name>.mcfunction`).
+   */
+  addFunction(fn: McFunction): string {
+    const path = `functions/${fn.name}.mcfunction`;
+    this.addNewFile(path, fn.source, `Function ${fn.name}`);
+    if (fn.tick) {
+      this.registerTickFunction(fn.name);
+    }
+    return path;
+  }
+
+  /** Adds a function name to `functions/tick.json` (deduplicated). */
+  private registerTickFunction(name: string): void {
+    const tickPath = 'functions/tick.json';
+    const values: string[] = [];
+    const existing = this.getFile(tickPath);
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing.toString('utf8')) as { values?: unknown };
+        if (parsed && Array.isArray(parsed.values)) {
+          for (const v of parsed.values) {
+            if (typeof v === 'string' && v.trim() !== '') values.push(v);
+          }
+        }
+      } catch {
+        // Malformed existing tick.json → start fresh.
+      }
+    }
+    if (!values.includes(name)) values.push(name);
+    this.addFile(tickPath, JSON.stringify({ values }, null, 2));
   }
 
   /**

@@ -33,10 +33,22 @@ export interface RenderControllerConfig {
   materials: MaterialBinding[];
   /** The texture shortnames to use, e.g. `['texture.default']`. */
   textures: string[];
+  /** Named arrays for animated texture / geometry / material selection. */
+  arrays?: {
+    textures?: Record<string, string[]>;
+    geometries?: Record<string, string[]>;
+    materials?: Record<string, string[]>;
+  };
   /** Optional per-part visibility expressions. */
   partVisibility?: Array<{ bone: string; condition?: string }>;
   /** Optional color tint applied to the geometry. */
   color?: Record<string, unknown>;
+  /** Flat overlay color `{ r, g, b, a }`. */
+  overlayColor?: Record<string, unknown>;
+  /** Multiplier applied to light color. */
+  lightColorMultiplier?: number;
+  /** Whether to ignore lighting when rendering. */
+  ignoreLighting?: boolean;
   /** The manifest `format_version`. Defaults to `'1.10.0'`. */
   formatVersion?: string;
 }
@@ -47,8 +59,12 @@ export interface ResolvedRenderControllerConfig {
   geometry: string;
   materials: MaterialBinding[];
   textures: string[];
+  arrays: RenderControllerConfig['arrays'];
   partVisibility: Array<{ bone: string; condition?: string }>;
   color: Record<string, unknown> | undefined;
+  overlayColor: Record<string, unknown> | undefined;
+  lightColorMultiplier: number | undefined;
+  ignoreLighting: boolean | undefined;
   formatVersion: string;
 }
 
@@ -70,8 +86,12 @@ export class RenderController {
       geometry: config.geometry,
       materials: config.materials,
       textures: config.textures,
+      arrays: config.arrays,
       partVisibility: config.partVisibility ?? [],
       color: config.color,
+      overlayColor: config.overlayColor,
+      lightColorMultiplier: config.lightColorMultiplier,
+      ignoreLighting: config.ignoreLighting,
       formatVersion: config.formatVersion ?? '1.10.0',
     };
   }
@@ -95,6 +115,9 @@ export class RenderController {
       materials: this.config.materials,
       textures: this.config.textures,
     };
+    if (this.config.arrays && Object.keys(this.config.arrays).length > 0) {
+      controller.arrays = this.config.arrays;
+    }
     if (this.config.partVisibility.length > 0) {
       const vis: Record<string, unknown> = {};
       for (const pv of this.config.partVisibility) {
@@ -104,6 +127,15 @@ export class RenderController {
     }
     if (this.config.color) {
       controller.color = this.config.color;
+    }
+    if (this.config.overlayColor) {
+      controller.overlay_color = this.config.overlayColor;
+    }
+    if (this.config.lightColorMultiplier !== undefined) {
+      controller.light_color_multiplier = this.config.lightColorMultiplier;
+    }
+    if (this.config.ignoreLighting !== undefined) {
+      controller.ignore_lighting = this.config.ignoreLighting;
     }
 
     return {

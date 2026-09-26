@@ -254,14 +254,18 @@ export interface SoundDefinition {
   volume?: number;
   /** The pitch of the sound. Defaults to `1.0`. */
   pitch?: number;
-  /** Whether to preload the sound on low-memory devices. Defaults to `false`. */
-  loadOnLowMemory?: boolean;
 }
 
 /** The shape of a full `sound_definitions.json` file. */
 export interface SoundEventDefinition {
   /** Max distance the sound carries. */
   maxDistance?: number;
+  /** Min distance (in blocks) before the sound fades in. */
+  minDistance?: number;
+  /** The sound category (e.g. `'hostile'`, `'music'`). */
+  category?: string;
+  /** Whether to preload the sound on low-memory devices. Defaults to `false`. */
+  loadOnLowMemory?: boolean;
   /** The list of sound variants. */
   sounds: SoundDefinition[];
 }
@@ -270,6 +274,10 @@ export interface SoundEventDefinition {
 export interface AddSoundOptions {
   /** The maximum distance (in blocks) the sound carries. Defaults to `16`. */
   maxDistance?: number;
+  /** The minimum distance (in blocks) before the sound fades in. */
+  minDistance?: number;
+  /** The sound category (e.g. `'hostile'`, `'music'`). */
+  category?: string;
   /** Whether to mark the sound for streaming (recommended for music records). */
   stream?: boolean;
   /** The sound volume. Defaults to `1.0`. */

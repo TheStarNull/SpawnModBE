@@ -34,3 +34,7 @@ export type {
   ClientColor,
   ResolvedBiomeClientEntry,
 } from './BiomesClient.js';
+export { Material } from './Material.js';
+export type { MaterialConfig, ResolvedMaterialConfig } from './Material.js';
+export { EntityModel } from './EntityModel.js';
+export type { EntityModelConfig, ResolvedEntityModelConfig } from './EntityModel.js';

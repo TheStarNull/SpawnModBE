@@ -1,0 +1,10 @@
+{
+"materials":{
+"version":"1.0.0",
+    "script_entity:entity_emissive_alpha": {},
+    "script_entity2:entity_emissive_alpha": {
+      "+defines": [ "USE_ONLY_EMISSIVE" ]
+    },
+    "script_charged:charged_creeper": {}
+  }
+}

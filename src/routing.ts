@@ -19,10 +19,12 @@ import {
   Attachable,
   BiomesClient,
   DynamicItemModel,
+  EntityModel,
   FlipbookTextures,
   FrameSequence,
   ItemTextureAtlas,
   LangFile,
+  Material,
   SoundBatch,
 } from './rp/index.js';
 import { TradeTable } from './trade/index.js';
@@ -31,6 +33,8 @@ import { Animation, AnimationController } from './animation/index.js';
 import { Dialogue } from './dialogue/index.js';
 import { Structure, StructurePlacement } from './structure/index.js';
 import { ScriptFile } from './script/index.js';
+import { McFunction } from './function/index.js';
+import { Player } from './player/index.js';
 
 /** Anything `mod.add` can wire up: instances, `[instance, path]` tuples, or nested arrays. */
 export type Addable =
@@ -59,12 +63,16 @@ export type Addable =
   | FeatureRule
   | Biome
   | Fog
+  | Player
   | Animation
   | AnimationController
   | Dialogue
   | Structure
   | StructurePlacement
   | ScriptFile
+  | McFunction
+  | Material
+  | EntityModel
   | [Recipe, string?]
   | [LootTable, string]
   | [TradeTable, string]
@@ -75,6 +83,7 @@ export interface DefineSpec {
   items?: Item[];
   blocks?: Block[];
   entities?: (EntityBP | EntityRP | RenderController | SpawnRules)[];
+  players?: Player[];
   recipes?: (Recipe | [Recipe, string?])[];
   loot?: (LootTable | [LootTable, string])[];
   trades?: (TradeTable | [TradeTable, string])[];
@@ -90,6 +99,9 @@ export interface DefineSpec {
   structures?: Structure[];
   structurePlacements?: StructurePlacement[];
   scripts?: ScriptFile[];
+  functions?: McFunction[];
+  materials?: Material[];
+  models?: EntityModel[];
   rp?: (LangFile | ItemTextureAtlas | Attachable | SoundBatch | DynamicItemModel | FrameSequence | FlipbookTextures | BiomesClient | Fog)[];
 }
 
@@ -111,7 +123,7 @@ function typeLabel(entry: unknown): string {
 
 function unsupportedError(entry: unknown): Error {
   return new Error(
-    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures/BiomesClient, Particle, Feature/FeatureRule, Biome, Fog, Animation, AnimationController, Dialogue, Structure, StructurePlacement, ScriptFile.`
+    `Unsupported entry for mod.add(): ${typeLabel(entry)}. Supported: items (Item/Tools/Armor/Food/Fuel/Throwable/BlockPlacer/EntityPlacer/RecordDisc), Block, EntityBP/EntityRP/RenderController/SpawnRules, Player, recipes, LootTable/TradeTable (path required), UiFile/UiDefs/UiGlobalVariables, LangFile/ItemTextureAtlas/Attachable/SoundBatch/DynamicItemModel/FrameSequence/FlipbookTextures/BiomesClient/Material/EntityModel, Particle, Feature/FeatureRule, Biome, Fog, Animation, AnimationController, Dialogue, Structure, StructurePlacement, ScriptFile, McFunction.`
   );
 }
 
@@ -179,6 +191,14 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
     return;
   }
 
+  // Player: behavior-pack override + resource-pack client entity, both `minecraft:player`.
+  if (entry instanceof Player) {
+    requireBehavior(mod, 'player');
+    mod.behavior!.addEntity(entry.toEntityBP());
+    mod.resource.addClientEntity(entry.toEntityRP());
+    return;
+  }
+
   if (entry instanceof EntityBP) {
     requireBehavior(mod, 'entity');
     mod.behavior!.addEntity(entry);
@@ -236,6 +256,9 @@ export function routeEntry(mod: ModMain, entry: Addable): void {
   if (entry instanceof Structure) { requireBehavior(mod, 'structure'); mod.behavior!.addStructure(entry); return; }
   if (entry instanceof StructurePlacement) { requireBehavior(mod, 'structure placement'); mod.behavior!.addStructurePlacement(entry); return; }
   if (entry instanceof ScriptFile) { requireBehavior(mod, 'script'); mod.behavior!.addScriptFile(entry); return; }
+  if (entry instanceof McFunction) { requireBehavior(mod, 'function'); mod.behavior!.addFunction(entry); return; }
+  if (entry instanceof Material) { mod.resource.addMaterial(entry); return; }
+  if (entry instanceof EntityModel) { mod.resource.addModel(entry); return; }
 
   throw unsupportedError(entry);
 }

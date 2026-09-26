@@ -1,0 +1,49 @@
+{
+    "format_version": "1.8.0",
+    "animations": {
+        "animation.player.attack.rotations": {
+            "loop": true,
+            "bones": {
+                "body": {
+                    "rotation": [
+                        0,
+                        "variable.attack_body_rot_y",
+                        0
+                    ]
+                },
+                "leftarm": {
+                    "rotation": [
+                        "-(Math.sin((1 - Math.pow((1 - variable.attack_time), 4)) * 180) * 1.2 + Math.sin(variable.attack_time * 180)) * 10.0",
+                        0,
+                        0
+                    ]
+                },
+                "rightarm": {
+                    "rotation": [
+                        "-(Math.sin((1 - Math.pow((1 - variable.attack_time), 4)) * 180) * 1.2 + Math.sin(variable.attack_time * 180)) * 20.0",
+                        "-(Math.sin((1 - Math.pow((1 - variable.attack_time), 4)) * 180) ? (-90.0 * Math.sin((1 - Math.pow((1 - variable.attack_time), 4)) * 180)) + 30.0 : 0.0)",
+                        0
+                    ]
+                }
+            }
+        },
+        "animation.player.first_person.attack_rotation_item": {
+            "loop": true,
+            "override_previous_animation": true,
+            "bones": {
+                "rightitem": {
+                    "rotation": [
+                        "Math.sin(variable.first_person_rotation_factor * (1.0 - variable.attack_time) * (1.0 - variable.attack_time) * 200.0) * 30",
+                        "Math.sin(variable.first_person_rotation_factor * (1.0 - variable.attack_time) * (1.0 - variable.attack_time) * 200.0) * -42",
+                        "Math.sin(variable.first_person_rotation_factor * (1.0 - variable.attack_time) * (1.0 - variable.attack_time) * 200.0) * -78"
+                    ],
+                    "position": [
+                        "Math.clamp(-15.5 * Math.sin(variable.first_person_rotation_factor * variable.attack_time * 112.0), 12, 999.0) * Math.sin(variable.first_person_rotation_factor * variable.attack_time * 112.0)",
+                        "Math.clamp(2 * Math.sin(variable.first_person_rotation_factor * variable.attack_time * 112.0), 3, 999.0) * Math.sin(variable.first_person_rotation_factor * variable.attack_time * 112.0)",
+                        "Math.sin(variable.first_person_rotation_factor * (1.0 - variable.attack_time) * (1.0 - variable.attack_time) * 280.0) * -11"
+                    ]
+                }
+            }
+        }
+    }
+}

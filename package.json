@@ -27,6 +27,7 @@
     "cli": "npm run build && node dist/cli.js",
     "example": "npm run build:test && node dist/example/index.js",
     "example:no-sapi": "npm run build:test && node dist/example/example-no-sapi.js",
+    "example:frostmoon": "npm run build:test && node dist/example/frostmoon.js",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [

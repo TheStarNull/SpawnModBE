@@ -74,9 +74,9 @@ export type BlockDescriptorSpec =
 /** Configuration for `minecraft:food`. */
 export interface FoodComponentConfig {
   /** Nutrition value added on consumption (may be negative). */
-  nutrition: number;
+  nutrition?: number;
   /** Saturation modifier (> 0). Saturates as `nutrition * saturation_modifier * 2`. */
-  saturationModifier: number;
+  saturationModifier?: number;
   /** Whether the item can be eaten even when full. */
   canAlwaysEat?: boolean;
   /** The item id this converts to when used (e.g. `minecraft:bowl`). */
@@ -126,6 +126,12 @@ export interface ItemConfig {
   identifier: string;
   /** Display name shown in-game. Defaults to the item's short name. */
   name?: string;
+  /**
+   * The value written to `minecraft:display_name`. When set, this is used
+   * verbatim (and may contain newlines/format codes). Defaults to `name`,
+   * then to the item's short name.
+   */
+  displayName?: string;
   /** A tooltip / description line. */
   description?: string;
   /** Creative menu category. Defaults to `'items'`. */
@@ -332,7 +338,7 @@ export class Item {
 
   /** The in-game display name. */
   get displayName(): string {
-    return this.config.name ?? this.shortName;
+    return this.config.displayName ?? this.config.name ?? this.shortName;
   }
 
   /** The texture name used by the icon component. */
@@ -451,12 +457,18 @@ export class Item {
       comps['minecraft:compostable'] = { composting_chance: c.compostingChance };
     }
     if (c.food) {
-      comps['minecraft:food'] = {
-        nutrition: c.food.nutrition,
-        saturation_modifier: c.food.saturationModifier,
-        ...(c.food.canAlwaysEat !== undefined ? { can_always_eat: c.food.canAlwaysEat } : {}),
-        ...(c.food.usingConvertsTo ? { using_converts_to: c.food.usingConvertsTo } : {}),
-      };
+      const foodBody: Record<string, unknown> = {};
+      if (c.food.nutrition !== undefined) foodBody.nutrition = c.food.nutrition;
+      if (c.food.saturationModifier !== undefined) {
+        foodBody.saturation_modifier = c.food.saturationModifier;
+      }
+      if (c.food.canAlwaysEat !== undefined) {
+        foodBody.can_always_eat = c.food.canAlwaysEat;
+      }
+      if (c.food.usingConvertsTo) {
+        foodBody.using_converts_to = c.food.usingConvertsTo;
+      }
+      comps['minecraft:food'] = foodBody;
     }
     if (c.useAnimation) comps['minecraft:use_animation'] = c.useAnimation;
     if (c.useModifiers) {
