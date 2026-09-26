@@ -9,10 +9,11 @@
 
 ### Added
 
-- `example/frostmoon.ts`：霜月之刃示例改为尽量用 API 方法生成 —— 物品走 `mod.item()`、
-  玩家覆盖走 `Player` 模块，闪电 BP/RP 实体、颜色/变体组件组（循环生成）、材质、刀模/人体模型、
-  刀持/充能/攻击动画全部改为内联 API 负载；仅原版玩家基线、闪电关键帧动画/几何、玩家动画控制器、
-  SAPI 脚本与二进制资源保留从 `frostmoon-assets/` 载入再经模块输出。
+- `example/frostmoon.ts`：霜月之刃示例改为尽量用 API 方法生成 —— 物品走 `mod.item()`，
+  玩家覆盖走 `Player` 模块（BP/RP 全部内联配置），闪电 BP/RP 实体、颜色/变体组件组（循环生成）、
+  材质、刀模/人体模型、刀持/充能/攻击动画全部改为内联 API 负载；仅闪电关键帧动画/几何、玩家
+  动画控制器、SAPI 脚本与二进制资源保留从 `frostmoon-assets/` 载入再经模块输出，未再引用的
+  源 JSON/material 资产文件已删除。
 - `Player` 模块（`mod.player()`）：对 `minecraft:player` 的组合式覆盖，同时生成 BP
   `entities/player.json` 与 RP `entity/player.entity.json`，setter 采用深合并/追加去重语义。
 - `Item.displayName`：写入 `minecraft:display_name` 的富文本值（可含换行/格式码），

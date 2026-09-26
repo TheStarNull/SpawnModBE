@@ -1,3 +1,0 @@
-gamerule keepinventory true
-gamerule functioncommandlimit 0
-function yw
